@@ -1,6 +1,9 @@
 #include "Cpu.h"
 #include <string.h>
 
+#define EIGHT_BIT_MASK  0xFF
+#define EIGHT_BIT_SHIFT 8
+
 enum AddressModesEnum
 {
 // name                             desc                          symbol
@@ -128,6 +131,46 @@ enum OperationEnum
   PLX,                          // PulL X register
   XCE,                          // eXchange Carry and Emulation flags
 };                            
+
+const uint8_t Cpu::TimingLookupTable[] = 
+{
+  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  r,                IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+};
+
+const uint8_t Cpu::SizeLookupTable[] = 
+{
+  BRK,  ORA,  COP,  ORA,  TSB,  ORA,  ASL,  ORA,  PHP,  ORA,  ASL,  PHD,  TSB,  ORA,  ASL,  ORA,
+  BPL,  ORA,  ORA,  ORA,  TRB,  ORA,  ASL,  ORA,  CLC,  ORA,  INC,  TCS,  TRB,  ORA,  ASL,  ORA,
+  JSR,  AND,  JSL,  AND,  BIT,  AND,  ROL,  AND,  PLP,  AND,  ROL,  PLD,  BIT,  AND,  ROL,  AND,
+  BMI,  AND,  AND,  AND,  BIT,  AND,  ROL,  AND,  SEC,  AND,  DEC,  TSC,  BIT,  AND,  ROL,  AND,
+  RTI,  EOR,  WDM,  EOR,  MVP,  EOR,  LSR,  EOR,  PHA,  EOR,  LSR,  PHK,  JMP,  EOR,  LSR,  EOR,
+  BVC,  EOR,  EOR,  EOR,  MVN,  EOR,  LSR,  EOR,  CLI,  EOR,  PHY,  TCD,  JMP,  EOR,  LSR,  EOR,
+  RTS,  ADC,  PER,  ADC,  STZ,  ADC,  ROR,  ADC,  PLA,  ADC,  ROR,  RTL,  JMP,  ADC,  ROR,  ADC,
+  BVS,  ADC,  ADC,  ADC,  STZ,  ADC,  ROR,  ADC,  SEI,  ADC,  PLY,  TDC,  JMP,  ADC,  ROR,  ADC,
+  BRA,  STA,  BRL,  STA,  STY,  STA,  STX,  STA,  DEY,  BIT,  TXA,  PHB,  STY,  STA,  STX,  STA,
+  BCC,  STA,  STA,  STA,  STY,  STA,  STX,  STA,  TYA,  STA,  TXS,  TXY,  STZ,  STA,  STZ,  STA,
+  LDY,  LDA,  LDX,  LDA,  LDY,  LDA,  LDX,  LDA,  TAY,  LDA,  TAX,  PLB,  LDY,  LDA,  LDX,  LDA,
+  BCS,  LDA,  LDA,  LDA,  LDY,  LDA,  LDX,  LDA,  CLV,  LDA,  TSX,  TYX,  LDY,  LDA,  LDX,  LDA,
+  CPY,  CMP,  REP,  CMP,  CPY,  CMP,  DEC,  CMP,  INY,  CMP,  DEX,  WAI,  CPY,  CMP,  DEC,  CMP,
+  BNE,  CMP,  CMP,  CMP,  PEI,  CMP,  DEC,  CMP,  CLD,  CMP,  PHX,  STP,  JML,  CMP,  DEC,  CMP,
+  CPX,  SBC,  SEP,  SBC,  CPX,  SBC,  INC,  SBC,  INX,  SBC,  NOP,  XBA,  CPX,  SBC,  INC,  SBC,
+  BEQ,  SBC,  SBC,  SBC,  PEA,  SBC,  INC,  SBC,  SED,  SBC,  PLX,  XCE,  JSR,  SBC,  INC,  SBC,
+};
 
 const uint8_t Cpu::AddressModeLookupTable[] = 
 {
@@ -310,8 +353,8 @@ Cpu::Cpu()
   decimalFlag(false),
   overflowFlag(false),
   negativeFlag(false),
-  pc(0x34),
-  sp(0xFD),
+  pc(&memory[0x34]),
+  sp(&memory[0xFD]),
   a(0),
   x(0),
   y(0)
@@ -332,8 +375,17 @@ void Cpu::reset()
   overflowFlag = false;
   negativeFlag = false;
 
-  sp = 0xFD;
-  pc = 0x34;
+  // TODO: FD 34 or 1ff etc
+  // sp = &memory[0xFD];
+  // pc = &memory[0x34];
+  sp = &memory[0x1FF];    
+
+  // On reset, reference address given from &memory[(memory[0xFFFD] << 8) | (memory[0xFFFC])]; 
+  uint16_t tempAddr = ((memory[0xFFFD] & EIGHT_BIT_MASK) << EIGHT_BIT_SHIFT);
+  tempAddr |= (memory[0xFFFC] & EIGHT_BIT_MASK);
+//  pc = &memory[(memory[tempAddr])];
+  pc = &memory[tempAddr];
+
   a = 0;
   x = 0;
   y = 0;
@@ -380,14 +432,32 @@ void Cpu::doInstruction(uint8_t *instructionAddr)
   (this->*OperationCodeFunctionTable[operationCodeId])(address);
 }
 
-uint16_t Cpu::getPC()
+uint16_t Cpu::getProgramCounter()
 {
-  return pc;
+  // return memory index pointed to by PC
+  return pc - &memory[0];
 }
 
-uint8_t Cpu::getSP()
+uint8_t Cpu::getStackPointer()
 {
-  return sp;
+  // return index pointed to by SP range 0x0 -> 0xFF
+  // sp starts at 0x1FF, moves to lower addresses
+  return sp - &memory[0x0100];
+}
+
+void Cpu::setProgramCounter(uint16_t addr)
+{
+  // return memory index pointed to by PC
+  pc = &memory[addr];
+  return;
+}
+
+void Cpu::setStackPointer(uint8_t addr)
+{
+  // return index pointed to by SP range 0x0 -> 0xFF
+  // setSp(0xff) resets to top of stack
+  sp = &memory[0x0100 + addr];
+  return;
 }
 
 uint8_t Cpu::getA()
@@ -405,9 +475,46 @@ uint8_t Cpu::getY()
   return y;
 }
 
-uint8_t Cpu::getAbsoluteMemory(uint16_t address)
+// return signed int equal to given 8-bit signed representation from 8-bit unsigned representation
+uint8_t Cpu::getOnesComplement(uint8_t value)
 {
-  return memory[address];
+  return ~value;
+}
+
+// return signed int equal to given 8-bit signed representation from 8-bit unsigned representation
+int Cpu::getTwosComplement(uint8_t value)
+{
+  int newValue = 0;
+
+  // test sign bit: 1000 0000
+  if (value & 0x80)
+  {
+    // negative value
+    value = ~value;
+    newValue = value + 1;
+  }
+  else
+  {
+    newValue = value;
+  }
+
+  return newValue;
+}
+
+// push 8 bits onto stack and increment stack pointer
+void Cpu::pushStack(uint8_t value)
+{
+  *sp = value;
+  sp--;
+}
+
+// pop 8 bits from stack and decrement stack pointer
+uint8_t Cpu::popStack()
+{
+  uint8_t value;
+  value = *sp;
+  sp++;
+  return value;
 }
 
 // No address/value
@@ -622,6 +729,7 @@ uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
 // BReaKpoint
 void Cpu::iBRK(uint8_t *addr)
 {
+  printf("break\n");
 }
 
 // bitwise OR Accumulator
@@ -640,59 +748,100 @@ void Cpu::iORA(uint8_t *addr)
 // COProcessor
 void Cpu::iCOP(uint8_t *addr)
 {
+  // unused
 }
 
 // Test and Set Bits
 void Cpu::iTSB(uint8_t *addr)
 {
+  // unused
 }
 
 // Arithmetic Shift Left
 void Cpu::iASL(uint8_t *addr)
 {
+  uint8_t temp = *addr;
+  printf("*addr = %x", temp);
+
+  // bit 7 shifts into carry
+  if (temp & 0x80)
+    carryFlag = true;
+  else
+    carryFlag = false;
+  
+  // shift left once
+  temp <<= 1;
+  *addr = temp;
+
+  printf(" ASL: %x carry: %x\n", temp, carryFlag);
 }
 
 // PusH Processor status register
 void Cpu::iPHP(uint8_t *addr)
 {
+  uint8_t value = getFlags();
+
+  // push 8 bit flags onto stack and increment pointer
+  pushStack(value);
 }
 
 // PusH Direct register
 void Cpu::iPHD(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if PLus
 void Cpu::iBPL(uint8_t *addr)
 {
+  // TODO - branch
+  // branch, otherwise continue to next instruction
+//  if (!negativeFlag)
+//    pc = &memory[*addr];
 }
 
 // Test and Reset Bits
 void Cpu::iTRB(uint8_t *addr)
 {
+  // unused
+  
 }
 
 // CLear Carry
 void Cpu::iCLC(uint8_t *addr)
 {
+  carryFlag = false;
 }
 
 // INCrement
+// Affects flags S, Z
 void Cpu::iINC(uint8_t *addr)
 {
+  uint8_t value = *addr;
+  value += 1;
+  *addr = value;
+
+  // value became zero (incremented from 0xFF)
+  if (value == 0)
+  {
+    zeroFlag = true;
+  }
 }
 
 // Transfer C accumulator to Stack pointer
 void Cpu::iTCS(uint8_t *addr)
 {
+  // unused
 }
 
 // Jump to SubRoutine
 void Cpu::iJSR(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // bitwise AND
+// affects flags S, Z
 void Cpu::iAND(uint8_t *addr)
 {
   uint8_t value = *addr;
@@ -700,6 +849,18 @@ void Cpu::iAND(uint8_t *addr)
 
   // accumulator = accumulator & *memoryAddr
   a &= value;
+
+  // Z: value became zero
+  if (a == 0)
+  {
+    zeroFlag = true;
+  }
+
+  // S: value became negative
+  if (getTwosComplement(a) < 0)
+  {
+    negativeFlag = true;
+  }
 
   printf(" = %x\n", a);
   return;
@@ -711,106 +872,195 @@ void Cpu::iJSL(uint8_t *addr)
 }
 
 // test BITs
+// Affects flags N V Z
 void Cpu::iBIT(uint8_t *addr)
 {
+  uint8_t value = *addr;
+
+  // Z set as though the value were ANDed with the accumulator
+  if ((value & a) == 0)
+  {
+    zeroFlag = true;
+  }
+
+  // S set to match bit 7 in the value stored at the tested address
+  negativeFlag = (value & negativeMask);
+
+  // V set to match bit 6 in the value stored at the tested address
+  overflowFlag = (value & overflowMask);
 }
 
 // ROtate Left
+// Affects Flags: S Z C
 void Cpu::iROL(uint8_t *addr)
 {
+  uint8_t value = *addr;
+  bool prevCarry = carryFlag;
+
+  // the original bit 7 is shifted into carryFlag
+  carryFlag = (value & negativeMask);
+
+  // rotate 1 bit
+  value <<= 1;
+
+  // original carry value is shifted into bit 0
+  if (prevCarry)
+  {
+    value |= 1;
+  }
+
+  // resulting value affects zeroFlag
+  if (value == 0)
+    zeroFlag = true;
+
+  *addr = value;
 }
 
 // PulL Processor status register
 void Cpu::iPLP(uint8_t *addr)
 {
+  uint8_t value = popStack();
+
+  // push 8 bit flags onto stack and increment pointer
+  setFlags(value);
 }
 
 // PulL Direct register
 void Cpu::iPLD(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if MInus
 void Cpu::iBMI(uint8_t *addr)
 {
+  // branch, otherwise continue to next instruction
+  if (negativeFlag)
+    pc = &memory[*addr];
 }
 
 // SEt Carry
 void Cpu::iSEC(uint8_t *addr)
 {
+  carryFlag = true;
 }
 
 // DECrement
+// Affects Flags: S Z
 void Cpu::iDEC(uint8_t *addr)
 {
+  uint8_t value = *addr;
+  value -= 1;
+  *addr = value;
+
+  // value became zero
+  if (value == 0)
+  {
+    zeroFlag = true;
+  }
 }
 
 // Transfer Stack pointer to C accumulator
 void Cpu::iTSC(uint8_t *addr)
 {
+  // unused
 }
 
 // ReTurn from Interrupt
+// retrieves the Processor Status Word (flags), then Program Counter from the stack
 void Cpu::iRTI(uint8_t *addr)
 {
+  // get flags from register
+  setFlags(popStack());
+
+  // get program counter from stack
+  setProgramCounter(popStack());
 }
 
 // bitwise exclusive OR
 void Cpu::iEOR(uint8_t *addr)
 {
   uint8_t value = *addr;
-  printf("EOR: %x ^= %x", a, value);
 
   // accumulator = accumulator ^ *memoryAddr
   a ^= value;
 
-  printf(" = %x\n", a);
   return;
 }
 
 // William D. Mensch, Jr. (2-byte, 2-cycle NOP)
 void Cpu::iWDM(uint8_t *addr)
 {
+  // unused
 }
 
 // MoVe memory Positive
 void Cpu::iMVP(uint8_t *addr)
 {
+  // unused
 }
 
 // Logical Shift Right
+// Affects Flags: S Z C
 void Cpu::iLSR(uint8_t *addr)
 {
+  uint8_t value = *addr;
+
+  // original bit 0 is shifted into the Carry
+  carryFlag = (value & 1);
+
+  value >>= 1;
+
+  // affects zero flag
+  zeroFlag = (value == 0);
+
+  *addr = value;
 }
 
 // PusH Accumulator
 void Cpu::iPHA(uint8_t *addr)
 {
+  uint8_t value = *addr;
+
+  // push onto stack
+  pushStack(value);
 }
 
 // PusH K register
 void Cpu::iPHK(uint8_t *addr)
 {
+  // unused
 }
 
 // JuMP
+// always uses 16 bits, addressing modes can only be absolute or indirect
 void Cpu::iJMP(uint8_t *addr)
 {
+  uint16_t value = 0;
+
+  // absolute address is in 2 byte following instruction in reverse byte order
+  value = (*(addr+1) & 0xFF) << 8;
+  value |= *(addr) & 0xFF;
+
+  setProgramCounter(value);
 }
 
 // Branch if oVerflow Clear
 void Cpu::iBVC(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // MoVe memory Negative
 void Cpu::iMVN(uint8_t *addr)
 {
+  // unused
 }
 
 // CLear Interrupt disable
 void Cpu::iCLI(uint8_t *addr)
 {
+  interruptFlag = false;
 }
 
 // PusH Y register
@@ -874,6 +1124,7 @@ void Cpu::iBVS(uint8_t *addr)
 // SEt Interrupt disable
 void Cpu::iSEI(uint8_t *addr)
 {
+  interruptFlag = true;
 }
 
 // PulL Y register
@@ -892,97 +1143,140 @@ void Cpu::iBRA(uint8_t *addr)
 }
 
 // STore Accumulator
+// Affects Flags: none
 void Cpu::iSTA(uint8_t *addr)
 {
   uint8_t value = a;
-  printf("STA: %x to %p\n", value, addr);
 
-  // store accmulator at memoryAddr
   *addr = value;
-
-  return;
 }
 
 // BRanch Long
 void Cpu::iBRL(uint8_t *addr)
 {
+  // unused
 }
 
 // STore Y register
+// Affects Flags: none
 void Cpu::iSTY(uint8_t *addr)
 {
+  uint8_t value = y;
+
+  *addr = value;
 }
 
 // STore X register
 void Cpu::iSTX(uint8_t *addr)
 {
+  uint8_t value = x;
+
+  *addr = value;
 }
 
 // DEcrement Y register
+// Affect Flags: S Z
 void Cpu::iDEY(uint8_t *addr)
 {
+  y--;
+  
+  zeroFlag = (y == 0);
 }
 
 // Transfer X register to Accumulator
+// Affect Flags: S Z
 void Cpu::iTXA(uint8_t *addr)
 {
+  a = x;
+
+  zeroFlag = (a == 0);
 }
 
 // PusH data Bank register
 void Cpu::iPHB(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if Carry Clear
 void Cpu::iBCC(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // Transfer Y register to Accumulator
+// Affect Flags: S Z
 void Cpu::iTYA(uint8_t *addr)
 {
+  a = y;
+
+  zeroFlag = (a == 0);
 }
 
 // Transfer X register to Stack pointer
 void Cpu::iTXS(uint8_t *addr)
 {
+  *sp = x;
 }
 
 // Transfer X register to Y register
 void Cpu::iTXY(uint8_t *addr)
 {
+  // unused
 }
 
 // LoaD Y register
+// Affects Flags: S Z
 void Cpu::iLDY(uint8_t *addr)
 {
+  uint8_t value = *addr;
+
+  y = value;
+
+  zeroFlag = (y == 0);
 }
 
 // LoaD Accumulator
 void Cpu::iLDA(uint8_t *addr)
 {
   uint8_t value = *addr;
-  printf("LDA: %x\n", value);
 
-  // load value at *memoryAddr into accumulator
+  // a = value at *memoryAddr
   a = value;
 
-  return;
+  zeroFlag = (a == 0);
 }
 
 // LoaD X register
+// Affects Flags: S Z
 void Cpu::iLDX(uint8_t *addr)
 {
+  uint8_t value = *addr;
+
+  x = value;
+
+  zeroFlag = (x == 0);
 }
 
 // Transfer Accumulator to Y register
+// Affects Flags: S Z
 void Cpu::iTAY(uint8_t *addr)
 {
+  uint8_t value = a;
+
+  y = value;
+
+  zeroFlag = (y == 0);
 }
 
 // Transfer Accumulator to X register
 void Cpu::iTAX(uint8_t *addr)
 {
+  uint8_t value = a;
+
+  x = value;
+
+  zeroFlag = (x == 0);
 }
 
 // PulL data Bank register
@@ -998,6 +1292,7 @@ void Cpu::iBCS(uint8_t *addr)
 // CLear oVerflow
 void Cpu::iCLV(uint8_t *addr)
 {
+  overflowFlag = false;
 }
 
 // Transfer Stack pointer to X register
@@ -1058,6 +1353,7 @@ void Cpu::iPEI(uint8_t *addr)
 // CLear Decimal mode
 void Cpu::iCLD(uint8_t *addr)
 {
+  decimalFlag = false;
 }
 
 // PusH X register
@@ -1081,15 +1377,22 @@ void Cpu::iCPX(uint8_t *addr)
 }
 
 // SuBtract with Carry
+// Affects Flags: S V Z C
 void Cpu::iSBC(uint8_t *addr)
 {
   uint8_t value = *addr;
-  printf("SBC: %x - %x", a, value);
+  uint8_t onesComplement = getOnesComplement(value);
+  uint16_t checkOverflow = value + onesComplement;
 
-  // accumulator = accumulator - *memoryAddr
-  a -= value;
+  // sbc uses ones complement with overflow flag
+  a += getOnesComplement(value);
 
-  printf(" = %x\n", a);
+  // value overflowed 8 bits
+  carryFlag = (checkOverflow > 0xFF);
+
+  negativeFlag = (getTwosComplement(a) < 0);
+
+  zeroFlag = (a == 0);
 
   return;
 }
@@ -1097,11 +1400,16 @@ void Cpu::iSBC(uint8_t *addr)
 // SEt Processor status bits
 void Cpu::iSEP(uint8_t *addr)
 {
+  // unused
 }
 
 // INcrement X register
+// Affect Flags: S Z
 void Cpu::iINX(uint8_t *addr)
 {
+  x++;
+
+  zeroFlag = (x == 0);
 }
 
 // No OPeration
@@ -1112,30 +1420,36 @@ void Cpu::iNOP(uint8_t *addr)
 // eXchange B and A accumulator
 void Cpu::iXBA(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if EQual
 void Cpu::iBEQ(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // Push Effective Address
 void Cpu::iPEA(uint8_t *addr)
 {
+  // unused
 }
 
 // SEt Decimal mode
 void Cpu::iSED(uint8_t *addr)
 {
+  decimalFlag = true;
 }
 
 // PulL X register
 void Cpu::iPLX(uint8_t *addr)
 {
+  // unused
 }
 
 // eXchange Carry and Emulation flags
 void Cpu::iXCE(uint8_t *addr)
 {
+  // unused
 }
 
