@@ -168,6 +168,7 @@ class Cpu
     void setStackPointer(uint8_t addr);                 // set SP to memory[0x1FF - addr]
     int getTwosComplement(uint8_t value);               // get signed representation of uint8 value converted to signed int type
     uint8_t getOnesComplement(uint8_t value);           // used with sbc
+    int getSignedRepresentation(uint8_t value);     // convert uint8_t to int16_t
     void pushStack(uint8_t value);                      // push 8 bits onto stack and increment stack pointer
     uint8_t popStack();                                 // pop 8 bits from stack and decrement stack pointer
 

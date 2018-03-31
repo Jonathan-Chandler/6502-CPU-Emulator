@@ -481,6 +481,27 @@ uint8_t Cpu::getOnesComplement(uint8_t value)
   return ~value;
 }
 
+int Cpu::getSignedRepresentation(uint8_t value)
+{
+  int result;
+
+  if (value > 0x80)
+  {
+    // get 2's complement
+    value = ~value;
+    result = value + 1;
+
+    // return as signed negative
+    result *= -1;
+  }
+  else
+  {
+    result = value;
+  }
+
+  return result;
+}
+
 // return signed int equal to given 8-bit signed representation from 8-bit unsigned representation
 int Cpu::getTwosComplement(uint8_t value)
 {
@@ -516,6 +537,15 @@ uint8_t Cpu::popStack()
   sp++;
   return value;
 }
+
+// get absolute address from 8 bit pointer
+// uint8_t Cpu::getAbsoluteAddress()
+// {
+//   uint8_t value;
+//   value = *sp;
+//   sp++;
+//   return value;
+// }
 
 // No address/value
 uint8_t *Cpu::AddressNone(uint8_t *instructionAddr)
@@ -804,7 +834,6 @@ void Cpu::iBPL(uint8_t *addr)
 void Cpu::iTRB(uint8_t *addr)
 {
   // unused
-  
 }
 
 // CLear Carry
@@ -863,12 +892,12 @@ void Cpu::iAND(uint8_t *addr)
   }
 
   printf(" = %x\n", a);
-  return;
 }
 
 // Jump to Subroutine Long
 void Cpu::iJSL(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // test BITs
@@ -878,10 +907,7 @@ void Cpu::iBIT(uint8_t *addr)
   uint8_t value = *addr;
 
   // Z set as though the value were ANDed with the accumulator
-  if ((value & a) == 0)
-  {
-    zeroFlag = true;
-  }
+  zeroFlag = ((value & a) == 0);
 
   // S set to match bit 7 in the value stored at the tested address
   negativeFlag = (value & negativeMask);
@@ -954,10 +980,7 @@ void Cpu::iDEC(uint8_t *addr)
   *addr = value;
 
   // value became zero
-  if (value == 0)
-  {
-    zeroFlag = true;
-  }
+  zeroFlag = (value == 0);
 }
 
 // Transfer Stack pointer to C accumulator
@@ -1066,59 +1089,111 @@ void Cpu::iCLI(uint8_t *addr)
 // PusH Y register
 void Cpu::iPHY(uint8_t *addr)
 {
+  // unused
 }
 
 // Transfer C accumulator to Direct register
 void Cpu::iTCD(uint8_t *addr)
 {
+  // unused
 }
 
 // ReTurn from Subroutine
 void Cpu::iRTS(uint8_t *addr)
 {
+  // TODO - branch
 }
 
+// ADC, start with C clear
+// 1st     2nd    result      N        V        C
+// -----------------------------------------------
+//  7      -2        5        0        0        1
+//  7       2        9        0        0        0
+//  7      80       87        1        0        0
+//  7      -9       -2        1        0        0
+//  7      7A       81        1        1        0
+// 80      90       10        0        1        1
+// F0      F0       E0        1        0        1
+// F8      0A        2        0        0        1
+// 
 // ADd with Carry
 void Cpu::iADC(uint8_t *addr)
 {
   uint8_t value = *addr;
-  printf("ADC: %x += %x", a, value);
+  uint16_t actual = *addr;
 
   // accumulator = accumulator + *memoryAddr
   a += value;
+  actual += a;
 
-  printf(" = %x\n", a);
-  return;
+  // add carry bit if set
+  a += (carryFlag) ? 1 : 0;
+  actual += (carryFlag) ? 1 : 0;
+
+  // check if overflow
+  overflowFlag = (actual != value);
+
+  // check if carry
+  carryFlag = static_cast<bool>(actual & static_cast<uint16_t>(0x100));
+
+  // check if negative
+  negativeFlag = static_cast<bool>(value & static_cast<uint8_t>(0x80));
 }
 
 // Push Effective Relative address
 void Cpu::iPER(uint8_t *addr)
 {
+  // unused
 }
 
 // STore Zero
 void Cpu::iSTZ(uint8_t *addr)
 {
+  // unused
 }
 
 // ROtate Right
+// Affects Flags: S Z C
 void Cpu::iROR(uint8_t *addr)
 {
+  uint8_t value = *addr;
+
+  // save bit zero before shift right
+  bool newCarryFlag = (value & 1);
+
+  // ROR shifts all bits right one position
+  value >>= 1;
+
+  // Carry is shifted into bit 7
+  if (carryFlag)
+  {
+    value |= 0x80;
+  }
+
+  // original bit 0 is shifted into the Carry
+  carryFlag = newCarryFlag;
+
+  zeroFlag = (value == 0);
+
+  *addr = value;
 }
 
 // PulL Accumulator
 void Cpu::iPLA(uint8_t *addr)
 {
+  a = popStack();
 }
 
 // ReTurn from subroutine Long
 void Cpu::iRTL(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if oVerflow Set
 void Cpu::iBVS(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // SEt Interrupt disable
@@ -1130,16 +1205,19 @@ void Cpu::iSEI(uint8_t *addr)
 // PulL Y register
 void Cpu::iPLY(uint8_t *addr)
 {
+  // unused
 }
 
 // Transfer Direct register to C accumulator
 void Cpu::iTDC(uint8_t *addr)
 {
+  // unused
 }
 
 // BRanch Always
 void Cpu::iBRA(uint8_t *addr)
 {
+  // unused
 }
 
 // STore Accumulator
@@ -1282,11 +1360,13 @@ void Cpu::iTAX(uint8_t *addr)
 // PulL data Bank register
 void Cpu::iPLB(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if Carry Set
 void Cpu::iBCS(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // CLear oVerflow
@@ -1298,26 +1378,32 @@ void Cpu::iCLV(uint8_t *addr)
 // Transfer Stack pointer to X register
 void Cpu::iTSX(uint8_t *addr)
 {
+  x = *sp;
 }
 
 // Transfer Y register to X register
 void Cpu::iTYX(uint8_t *addr)
 {
+  // unused
 }
 
 // ComPare to Y register
+// Affects Flags: S Z C
 void Cpu::iCPY(uint8_t *addr)
 {
+  uint8_t value = *addr;
+  uint16_t carryTest = getOnesComplement(value);
+  
+  // test overflow
+  carryFlag = ((carryTest + y) > 0xFF);
+
+  zeroFlag = (y == value);
 }
 
 // CoMPare (to accumulator)
+// Affects Flags: S Z C
 void Cpu::iCMP(uint8_t *addr)
 {
-//  printf("CMP: %x ? %x", a, value);
-  // compare value at *memoryAddr with accumulator
-  printf("CMP\n");
-
-  return;
 }
 
 // REset Processor status bits
@@ -1372,29 +1458,46 @@ void Cpu::iJML(uint8_t *addr)
 }
 
 // ComPare to X register
+// Affects Flags: S Z C
 void Cpu::iCPX(uint8_t *addr)
 {
 }
+
+// SBC, starting with C set:
+// 1st     2nd    result      N        V        C
+// -----------------------------------------------
+// F8      0A       EE        1        0        1
+// 81       7       7A        0        1        1
+//  7       2        5        0        0        1
+//  7      -2        9        0        0        0
+//  7       9       FE        1        0        0
+//  7      90       77        0        0        0
+// 10      90       80        1        1        0
+// 10      91       7F        0        0        0
 
 // SuBtract with Carry
 // Affects Flags: S V Z C
 void Cpu::iSBC(uint8_t *addr)
 {
   uint8_t value = *addr;
-  uint8_t onesComplement = getOnesComplement(value);
-  uint16_t checkOverflow = value + onesComplement;
+  int actual = getSignedRepresentation(value);
 
-  // sbc uses ones complement with overflow flag
-  a += getOnesComplement(value);
+  // accumulator = accumulator + *memoryAddr
+  a -= value;
+  actual -= getSignedRepresentation(a);
 
-  // value overflowed 8 bits
-  carryFlag = (checkOverflow > 0xFF);
+  // add carry bit if set
+  a += (carryFlag) ? 1 : 0;
+  actual += (carryFlag) ? 1 : 0;
 
-  negativeFlag = (getTwosComplement(a) < 0);
+  // check if overflow
+  overflowFlag = (actual != value);
 
-  zeroFlag = (a == 0);
+  // check if carry
+  carryFlag = static_cast<bool>(actual & static_cast<uint16_t>(0x100));
 
-  return;
+  // check if negative
+  negativeFlag = static_cast<bool>(value & static_cast<uint8_t>(0x80));
 }
 
 // SEt Processor status bits
