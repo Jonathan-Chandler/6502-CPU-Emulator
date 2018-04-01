@@ -90,7 +90,7 @@ class Cpu
     static const uint8_t TimingLookupTable[];
 
     // Bits 7 -> 0:
-    // Flags NVss DIZC
+    // Flags NVss DIZC (also SVss DBZC)
     //
     bool carryFlag;     // C : 1 if last addition or shift resulted in a carry, or if last subtraction resulted in no borrow
     bool zeroFlag;      // Z : 1 if last operation resulted in a 0 value
@@ -101,7 +101,9 @@ class Cpu
     bool sHigh;         // sx: No effect, used by stack copy
     bool sLow;          // xs: No effect, used by stack copy
 
-    bool breakFlag;     // "B" flag does not exist - use internally to signal BREAK
+    bool breakFlag;     // use internally to signal BREAK
+    bool crossedPage;   // signal 255-byte page boundary was crossed
+    uint8_t cycles;     // number of cycles to wait before executing next instruction
 
     uint8_t *pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
                         // On reset, reference address given from &memory[(memory[0xFFFD] << 4) | (memory[0xFFFC])]; 
@@ -147,6 +149,7 @@ class Cpu
     // $0300-$03FF  256 bytes   Variables used by sound player, and possibly other variables
     // $0400-$07FF  1024 bytes  Arrays and less-often-accessed global variables
     //
+#define MEMORY_SIZE 0x10000
     uint8_t memory[0x10000]; // 0 -> 0xFFFF
 
     // 0x0000 -> 0x000F - header
@@ -164,11 +167,14 @@ class Cpu
     void reset();
 
     // utility functions
+    bool testPageBoundary(uint8_t addressOffset);         // test if incrementing by offset will pass page boundary
+    void incrementProgramCounter(uint16_t addressOffset); // increment by addressOffset
     void setProgramCounter(uint16_t addr);              // set PC to memory[addr]
     void setStackPointer(uint8_t addr);                 // set SP to memory[0x1FF - addr]
     int getTwosComplement(uint8_t value);               // get signed representation of uint8 value converted to signed int type
     uint8_t getOnesComplement(uint8_t value);           // used with sbc
-    int getSignedRepresentation(uint8_t value);     // convert uint8_t to int16_t
+    int getSignedRepresentation(uint8_t value);         // convert uint8_t to int
+    int getSignedRepresentation(uint16_t value);        // convert uint16_t to int
     void pushStack(uint8_t value);                      // push 8 bits onto stack and increment stack pointer
     uint8_t popStack();                                 // pop 8 bits from stack and decrement stack pointer
 
@@ -285,5 +291,6 @@ class Cpu
       
     uint8_t *AddressIndirectAbsX(uint8_t *instructionAddr);           // Return the address: &memory[*(&memory[VAL + X]); (VAL is 2 bytes)
     uint8_t *AddressIndirectAbsZ(uint8_t *instructionAddr);           // Return the address: &memory[*(&memory[VAL]); (VAL is 2 bytes)
+    uint8_t *AddressRelative(uint8_t *instructionAddr);               // Return the address: &memory[PC + signed(VAL)]; (VAL is 1 byte)
 };
 #endif

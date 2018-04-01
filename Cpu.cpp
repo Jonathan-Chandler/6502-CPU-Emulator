@@ -20,12 +20,12 @@ enum AddressModesEnum
   IndirectZeroIndexY,         // indirect zero page ddress[Y]     (d), Y
   IndirectAbsoluteX,          // indirect absolute address + x    (a, X)
   IndirectAbsoluteZ,          // indirect absolute address        (a)
+  RelativeAddress,            // relative value:                  r
   ImplementedCount,           // No address used
   A,                          // No address used
   al,                         // No address used
   alX,                        // No address used
   b,                          // No address used
-  r,                          // No address used
   rl,                         // No address used
   pdSpY,                      // No address used
   dS,                         // No address used
@@ -135,21 +135,21 @@ enum OperationEnum
 const uint8_t Cpu::TimingLookupTable[] = 
 {
   b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
   DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
   None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
   None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  r,                IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
   Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
   Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
   Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
 };
 
 const uint8_t Cpu::SizeLookupTable[] = 
@@ -175,21 +175,21 @@ const uint8_t Cpu::SizeLookupTable[] =
 const uint8_t Cpu::AddressModeLookupTable[] = 
 {
   b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
   DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
   None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
   None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  r,                IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
   Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
   Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
   Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  r,                IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
 };
 
 const uint8_t Cpu::OperationCodeLookupTable[] = 
@@ -228,6 +228,7 @@ const Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] =
   &Cpu::AddressIndirectZeroIndexY,          // indirect zero page ddress[Y]     (d), Y
   &Cpu::AddressIndirectAbsX,                // indirect absolute address + x    (a, X)
   &Cpu::AddressIndirectAbsZ,                // indirect absolute address        (a)
+  &Cpu::AddressRelative,                    // relative value:                  r
 };
 
 const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] = 
@@ -353,6 +354,7 @@ Cpu::Cpu()
   decimalFlag(false),
   overflowFlag(false),
   negativeFlag(false),
+  cycles(0),
   pc(&memory[0x34]),
   sp(&memory[0xFD]),
   a(0),
@@ -449,7 +451,6 @@ void Cpu::setProgramCounter(uint16_t addr)
 {
   // return memory index pointed to by PC
   pc = &memory[addr];
-  return;
 }
 
 void Cpu::setStackPointer(uint8_t addr)
@@ -479,6 +480,27 @@ uint8_t Cpu::getY()
 uint8_t Cpu::getOnesComplement(uint8_t value)
 {
   return ~value;
+}
+
+int Cpu::getSignedRepresentation(uint16_t value)
+{
+  int result;
+
+  if (value > 0x8000)
+  {
+    // get 2's complement
+    value = ~value;
+    result = value + 1;
+
+    // return as signed negative
+    result *= -1;
+  }
+  else
+  {
+    result = value;
+  }
+
+  return result;
 }
 
 int Cpu::getSignedRepresentation(uint8_t value)
@@ -604,7 +626,6 @@ uint8_t *Cpu::AddressDirectZeroZ(uint8_t *instructionAddr)
   // use the low byte as index into memory to get the address of the zero page
   tempAddr = &memory[*(instructionAddr + 1)];
 
-  printf("Address mode ZeroPage direct -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -657,7 +678,6 @@ uint8_t *Cpu::AddressDirectAbsZ(uint8_t *instructionAddr)
   // use this as index into memory to get the absolute address
   tempAddr = &memory[memoryAddress];
 
-  printf("Address mode absolute -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -679,7 +699,6 @@ uint8_t *Cpu::AddressIndirectZeroX(uint8_t *instructionAddr)
   // return address of the dereferenced address
   tempAddr = &memory[memoryAddress];
   
-  printf("Address mode (ZeroPage, X) -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -700,7 +719,6 @@ uint8_t *Cpu::AddressIndirectZeroZ(uint8_t *instructionAddr)
   // return address of the dereferenced address
   tempAddr = &memory[memoryAddress];
   
-  printf("Address mode (ZeroPage) -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -717,7 +735,6 @@ uint8_t *Cpu::AddressIndirectZeroIndexY(uint8_t *instructionAddr)
   // increment Y bytes after dereferencing the zero page's address
   tempAddr = &memory[zeroPageDereferencedAddr + y];
 
-  printf("Address mode indexed (d), Y -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
   
@@ -735,7 +752,6 @@ uint8_t *Cpu::AddressIndirectAbsX(uint8_t *instructionAddr)
   // memory address of given absolute address + x register
   tempAddr = &memory[absoluteAddr];
 
-  printf("Address mode indirect AbsoluteAddr, X -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -752,8 +768,53 @@ uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
   // memory address of given absolute address + x register
   tempAddr = &memory[absoluteAddr];
 
-  printf("Address mode indirect AbsoluteAddr -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
+}
+
+// indirect absolute address: (a)
+// Return the address: &memory[PC + signed(VAL)]; (VAL is 1 byte)
+uint8_t *Cpu::AddressRelative(uint8_t *instructionAddr)
+{
+  uint8_t *tempAddr = nullptr;
+  uint16_t address;
+  uint16_t offset;
+
+  // relative address is 1 byte following instruction
+  offset = *(instructionAddr + 1) & 0xFF;
+
+  // convert the signed 8-bit representation to 16-bit
+  if (offset >= 0x80)
+  {
+    offset |= 0xFF00;
+  }
+  else
+  {
+    offset |= 0xFF00;
+  }
+
+  // get PC and add the signed offset
+  address = getProgramCounter();
+  address += offset;
+
+  // memory address of current PC address + signed(VAL)
+  tempAddr = &memory[address];
+
+  return tempAddr;
+}
+
+bool Cpu::testPageBoundary(uint8_t addressOffset)
+{
+  uint16_t currentPc = getProgramCounter();
+  uint16_t branchAddress = currentPc + addressOffset;
+
+  return (currentPc/100 != branchAddress/100);
+}
+
+void Cpu::incrementProgramCounter(uint16_t addressOffset)
+{
+  uint16_t currentPc = pc - &memory[0];
+  currentPc += addressOffset;
+  pc = &memory[currentPc];
 }
 
 // BReaKpoint
@@ -763,16 +824,19 @@ void Cpu::iBRK(uint8_t *addr)
 }
 
 // bitwise OR Accumulator
+// Affects Flags: S Z
 void Cpu::iORA(uint8_t *addr)
 {
   uint8_t value = *addr;
-  printf("ORA: %x |= %x", a, value);
 
   // accumulator = accumulator | *memoryAddr
   a |= value;
 
-  printf(" = %x\n", a);
-  return;
+  // S flag
+  negativeFlag = (a >= 0x80);
+
+  // Z flag
+  zeroFlag = (a == 0);
 }
 
 // COProcessor
@@ -788,25 +852,28 @@ void Cpu::iTSB(uint8_t *addr)
 }
 
 // Arithmetic Shift Left
+// Affects Flags: S Z C
 void Cpu::iASL(uint8_t *addr)
 {
   uint8_t temp = *addr;
-  printf("*addr = %x", temp);
 
-  // bit 7 shifts into carry
-  if (temp & 0x80)
-    carryFlag = true;
-  else
-    carryFlag = false;
+  // C flag is set to bit 7 before shifting
+  carryFlag = (temp >= 0x80);
   
   // shift left once
   temp <<= 1;
-  *addr = temp;
 
-  printf(" ASL: %x carry: %x\n", temp, carryFlag);
+  // Z flag set if result was 0
+  zeroFlag = (temp == 0);
+
+  // S flag set if bit 7 of the result is set
+  negativeFlag = (temp >= 0x80);
+  
+  *addr = temp;
 }
 
 // PusH Processor status register
+// Affects Flags: none
 void Cpu::iPHP(uint8_t *addr)
 {
   uint8_t value = getFlags();
@@ -822,12 +889,22 @@ void Cpu::iPHD(uint8_t *addr)
 }
 
 // Branch if PLus
+// Affects Flags: none
 void Cpu::iBPL(uint8_t *addr)
 {
-  // TODO - branch
-  // branch, otherwise continue to next instruction
-//  if (!negativeFlag)
-//    pc = &memory[*addr];
+  if (!negativeFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // Test and Reset Bits
@@ -837,6 +914,7 @@ void Cpu::iTRB(uint8_t *addr)
 }
 
 // CLear Carry
+// Affects Flags: C
 void Cpu::iCLC(uint8_t *addr)
 {
   carryFlag = false;
@@ -850,11 +928,11 @@ void Cpu::iINC(uint8_t *addr)
   value += 1;
   *addr = value;
 
-  // value became zero (incremented from 0xFF)
-  if (value == 0)
-  {
-    zeroFlag = true;
-  }
+  // Z: value became zero
+  zeroFlag = (value == 0);
+
+  // S: value is negative
+  negativeFlag = (value >= 0x80);
 }
 
 // Transfer C accumulator to Stack pointer
@@ -866,7 +944,16 @@ void Cpu::iTCS(uint8_t *addr)
 // Jump to SubRoutine
 void Cpu::iJSR(uint8_t *addr)
 {
-  // TODO - branch
+  uint16_t returnAddressFull = getProgramCounter();
+  uint8_t returnAddressLow = returnAddressFull & 0x00FF;
+  uint8_t returnAddressHigh = (returnAddressFull & 0xFF00) >> 8;
+
+  // RTS pulls the top two bytes off the stack (low byte first)
+  pushStack(returnAddressHigh);
+  pushStack(returnAddressLow);
+
+  // jump
+  pc = addr;
 }
 
 // bitwise AND
@@ -874,30 +961,21 @@ void Cpu::iJSR(uint8_t *addr)
 void Cpu::iAND(uint8_t *addr)
 {
   uint8_t value = *addr;
-  printf("AND: %x &= %x", a, value);
 
   // accumulator = accumulator & *memoryAddr
   a &= value;
 
   // Z: value became zero
-  if (a == 0)
-  {
-    zeroFlag = true;
-  }
+  zeroFlag = (a == 0);
 
   // S: value became negative
-  if (getTwosComplement(a) < 0)
-  {
-    negativeFlag = true;
-  }
-
-  printf(" = %x\n", a);
+  negativeFlag = (a >= 0x80);
 }
 
 // Jump to Subroutine Long
 void Cpu::iJSL(uint8_t *addr)
 {
-  // TODO - branch
+  // unused
 }
 
 // test BITs
@@ -906,13 +984,13 @@ void Cpu::iBIT(uint8_t *addr)
 {
   uint8_t value = *addr;
 
-  // Z set as though the value were ANDed with the accumulator
+  // Z: set as though the value were ANDed with the accumulator
   zeroFlag = ((value & a) == 0);
 
-  // S set to match bit 7 in the value stored at the tested address
+  // S: set to match bit 7 in the value stored at the tested address
   negativeFlag = (value & negativeMask);
 
-  // V set to match bit 6 in the value stored at the tested address
+  // V: set to match bit 6 in the value stored at the tested address
   overflowFlag = (value & overflowMask);
 }
 
@@ -923,26 +1001,26 @@ void Cpu::iROL(uint8_t *addr)
   uint8_t value = *addr;
   bool prevCarry = carryFlag;
 
-  // the original bit 7 is shifted into carryFlag
+  // C: the original bit 7 is shifted into carryFlag
   carryFlag = (value & negativeMask);
 
   // rotate 1 bit
   value <<= 1;
 
   // original carry value is shifted into bit 0
-  if (prevCarry)
-  {
-    value |= 1;
-  }
+  value |= (prevCarry) ? 1 : 0;
 
-  // resulting value affects zeroFlag
-  if (value == 0)
-    zeroFlag = true;
+  // Z: resulting value affects zeroFlag
+  zeroFlag = (value == 0);
+
+  // S: resulting value affects signFlag
+  negativeFlag = (value >= 0x80);
 
   *addr = value;
 }
 
 // PulL Processor status register
+// Affects all flags
 void Cpu::iPLP(uint8_t *addr)
 {
   uint8_t value = popStack();
@@ -958,14 +1036,26 @@ void Cpu::iPLD(uint8_t *addr)
 }
 
 // Branch if MInus
+// Affects flags: none
 void Cpu::iBMI(uint8_t *addr)
 {
-  // branch, otherwise continue to next instruction
   if (negativeFlag)
-    pc = &memory[*addr];
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // SEt Carry
+// Affects flags C
 void Cpu::iSEC(uint8_t *addr)
 {
   carryFlag = true;
@@ -976,11 +1066,15 @@ void Cpu::iSEC(uint8_t *addr)
 void Cpu::iDEC(uint8_t *addr)
 {
   uint8_t value = *addr;
+  
   value -= 1;
   *addr = value;
 
-  // value became zero
+  // Z: value became zero
   zeroFlag = (value == 0);
+
+  // S: value is negative
+  negativeFlag = (value >= 0x80);
 }
 
 // Transfer Stack pointer to C accumulator
@@ -996,11 +1090,14 @@ void Cpu::iRTI(uint8_t *addr)
   // get flags from register
   setFlags(popStack());
 
-  // get program counter from stack
-  setProgramCounter(popStack());
+  // get program counter from stack, low byte first
+  uint16_t newPC = popStack();
+  newPC |= (popStack() << 8);
+  setProgramCounter(newPC);
 }
 
 // bitwise exclusive OR
+// Affects Flags: S Z
 void Cpu::iEOR(uint8_t *addr)
 {
   uint8_t value = *addr;
@@ -1008,7 +1105,11 @@ void Cpu::iEOR(uint8_t *addr)
   // accumulator = accumulator ^ *memoryAddr
   a ^= value;
 
-  return;
+  // S: a became negative
+  negativeFlag = (a >= 0x80);
+
+  // Z: a became zero
+  zeroFlag = (a == 0);
 }
 
 // William D. Mensch, Jr. (2-byte, 2-cycle NOP)
@@ -1029,24 +1130,26 @@ void Cpu::iLSR(uint8_t *addr)
 {
   uint8_t value = *addr;
 
-  // original bit 0 is shifted into the Carry
+  // C: original bit 0 is shifted into the Carry
   carryFlag = (value & 1);
 
   value >>= 1;
 
-  // affects zero flag
+  // Z: value became zero
   zeroFlag = (value == 0);
+
+  // S: value became negative (never?)
+  negativeFlag = (value >= 0x80);
 
   *addr = value;
 }
 
 // PusH Accumulator
+// Affects Flags: none
 void Cpu::iPHA(uint8_t *addr)
 {
-  uint8_t value = *addr;
-
-  // push onto stack
-  pushStack(value);
+  // push accumulator
+  pushStack(a);
 }
 
 // PusH K register
@@ -1056,22 +1159,29 @@ void Cpu::iPHK(uint8_t *addr)
 }
 
 // JuMP
-// always uses 16 bits, addressing modes can only be absolute or indirect
+// Affects Flags: none
 void Cpu::iJMP(uint8_t *addr)
 {
-  uint16_t value = 0;
-
   // absolute address is in 2 byte following instruction in reverse byte order
-  value = (*(addr+1) & 0xFF) << 8;
-  value |= *(addr) & 0xFF;
-
-  setProgramCounter(value);
+  pc = addr;
 }
 
 // Branch if oVerflow Clear
 void Cpu::iBVC(uint8_t *addr)
 {
-  // TODO - branch
+  if (!overflowFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // MoVe memory Negative
@@ -1101,7 +1211,16 @@ void Cpu::iTCD(uint8_t *addr)
 // ReTurn from Subroutine
 void Cpu::iRTS(uint8_t *addr)
 {
-  // TODO - branch
+  uint8_t returnAddressLow;
+  uint8_t returnAddressHigh;
+  uint16_t returnAddressFull;
+
+  // RTS pulls the top two bytes off the stack (low byte first)
+  returnAddressLow = popStack();
+  returnAddressHigh = popStack();
+  returnAddressFull = returnAddressLow | (returnAddressHigh << 8);
+
+  pc = &memory[returnAddressFull];
 }
 
 // ADC, start with C clear
@@ -1134,10 +1253,10 @@ void Cpu::iADC(uint8_t *addr)
   overflowFlag = (actual != value);
 
   // check if carry
-  carryFlag = static_cast<bool>(actual & static_cast<uint16_t>(0x100));
+  carryFlag = (actual >= 0x100);
 
   // check if negative
-  negativeFlag = static_cast<bool>(value & static_cast<uint8_t>(0x80));
+  negativeFlag = (value >= 0x80);
 }
 
 // Push Effective Relative address
@@ -1157,8 +1276,6 @@ void Cpu::iSTZ(uint8_t *addr)
 void Cpu::iROR(uint8_t *addr)
 {
   uint8_t value = *addr;
-
-  // save bit zero before shift right
   bool newCarryFlag = (value & 1);
 
   // ROR shifts all bits right one position
@@ -1170,10 +1287,14 @@ void Cpu::iROR(uint8_t *addr)
     value |= 0x80;
   }
 
-  // original bit 0 is shifted into the Carry
+  // C: original bit 0 is shifted into the Carry
   carryFlag = newCarryFlag;
 
+  // Z: result was zero
   zeroFlag = (value == 0);
+
+  // S: result was negative
+  negativeFlag = (value >= 0x80);
 
   *addr = value;
 }
@@ -1193,7 +1314,19 @@ void Cpu::iRTL(uint8_t *addr)
 // Branch if oVerflow Set
 void Cpu::iBVS(uint8_t *addr)
 {
-  // TODO - branch
+  if (overflowFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // SEt Interrupt disable
@@ -1279,7 +1412,19 @@ void Cpu::iPHB(uint8_t *addr)
 // Branch if Carry Clear
 void Cpu::iBCC(uint8_t *addr)
 {
-  // TODO - branch
+  if (!carryFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // Transfer Y register to Accumulator
@@ -1311,10 +1456,15 @@ void Cpu::iLDY(uint8_t *addr)
 
   y = value;
 
+  // loaded zero
   zeroFlag = (y == 0);
+
+  // loaded negative value
+  negativeFlag = (y >= 0x80);
 }
 
 // LoaD Accumulator
+// Affects Flags: S Z
 void Cpu::iLDA(uint8_t *addr)
 {
   uint8_t value = *addr;
@@ -1322,7 +1472,11 @@ void Cpu::iLDA(uint8_t *addr)
   // a = value at *memoryAddr
   a = value;
 
+  // Z: loaded zero
   zeroFlag = (a == 0);
+
+  // S: loaded negative
+  negativeFlag = (a >= 0x80);
 }
 
 // LoaD X register
@@ -1333,7 +1487,11 @@ void Cpu::iLDX(uint8_t *addr)
 
   x = value;
 
+  // Z: loaded zero
   zeroFlag = (x == 0);
+
+  // S: loaded negative
+  negativeFlag = (x >= 0x80);
 }
 
 // Transfer Accumulator to Y register
@@ -1344,7 +1502,11 @@ void Cpu::iTAY(uint8_t *addr)
 
   y = value;
 
+  // Z: transfer zero
   zeroFlag = (y == 0);
+
+  // S: transfer negative
+  negativeFlag = (y >= 0x80);
 }
 
 // Transfer Accumulator to X register
@@ -1354,7 +1516,11 @@ void Cpu::iTAX(uint8_t *addr)
 
   x = value;
 
+  // Z: transfer zero
   zeroFlag = (x == 0);
+
+  // S: transfer negative
+  negativeFlag = (x >= 0x80);
 }
 
 // PulL data Bank register
@@ -1366,7 +1532,19 @@ void Cpu::iPLB(uint8_t *addr)
 // Branch if Carry Set
 void Cpu::iBCS(uint8_t *addr)
 {
-  // TODO - branch
+  if (carryFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // CLear oVerflow
@@ -1393,6 +1571,7 @@ void Cpu::iCPY(uint8_t *addr)
 {
   uint8_t value = *addr;
   uint16_t carryTest = getOnesComplement(value);
+  // TODO - branch
   
   // test overflow
   carryFlag = ((carryTest + y) > 0xFF);
@@ -1404,36 +1583,69 @@ void Cpu::iCPY(uint8_t *addr)
 // Affects Flags: S Z C
 void Cpu::iCMP(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // REset Processor status bits
 void Cpu::iREP(uint8_t *addr)
 {
+  // unused
 }
 
 // INcrement Y register
+// Affect Flags: S Z
 void Cpu::iINY(uint8_t *addr)
 {
+  y += 1;
+  
+  // S: increment to negative
+  negativeFlag = (y >= 0x80);
+
+  // Z: increment to zero
+  zeroFlag = (y == 0);
 }
 
 // DEcrement X register
+// Affects Flags: S Z 
 void Cpu::iDEX(uint8_t *addr)
 {
+  x -= 1;
+  
+  // S: increment to negative
+  negativeFlag = (x >= 0x80);
+
+  // Z: increment to zero
+  zeroFlag = (x == 0);
 }
 
 // WAit for Interrupt
 void Cpu::iWAI(uint8_t *addr)
 {
+  // unused
 }
 
 // Branch if Not Equal
 void Cpu::iBNE(uint8_t *addr)
 {
+  if (!zeroFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // Push Effective Indirect address
 void Cpu::iPEI(uint8_t *addr)
 {
+  // unused
 }
 
 // CLear Decimal mode
@@ -1445,22 +1657,26 @@ void Cpu::iCLD(uint8_t *addr)
 // PusH X register
 void Cpu::iPHX(uint8_t *addr)
 {
+  // unused
 }
 
 // SToP the clock
 void Cpu::iSTP(uint8_t *addr)
 {
+  // unused
 }
 
 // JuMP Long
 void Cpu::iJML(uint8_t *addr)
 {
+  // unused
 }
 
 // ComPare to X register
 // Affects Flags: S Z C
 void Cpu::iCPX(uint8_t *addr)
 {
+  // TODO - branch
 }
 
 // SBC, starting with C set:
@@ -1494,10 +1710,10 @@ void Cpu::iSBC(uint8_t *addr)
   overflowFlag = (actual != value);
 
   // check if carry
-  carryFlag = static_cast<bool>(actual & static_cast<uint16_t>(0x100));
+  carryFlag = (actual >= 0x100);
 
   // check if negative
-  negativeFlag = static_cast<bool>(value & static_cast<uint8_t>(0x80));
+  negativeFlag = (value >= 0x80);
 }
 
 // SEt Processor status bits
@@ -1512,12 +1728,17 @@ void Cpu::iINX(uint8_t *addr)
 {
   x++;
 
+  // Z: increment to zero
   zeroFlag = (x == 0);
+
+  // S: increment to negative
+  negativeFlag = (x >= 0x80);
 }
 
 // No OPeration
 void Cpu::iNOP(uint8_t *addr)
 {
+  // do nothing
 }
 
 // eXchange B and A accumulator
@@ -1529,7 +1750,19 @@ void Cpu::iXBA(uint8_t *addr)
 // Branch if EQual
 void Cpu::iBEQ(uint8_t *addr)
 {
-  // TODO - branch
+  if (zeroFlag)
+  {
+    // add 1 cycle since branch was taken
+    cycles += 1;
+
+    // add 1 cycle if crossing the page boundary
+    if (crossedPage)
+    {
+      cycles += 1;
+    }
+
+    pc = addr;
+  }
 }
 
 // Push Effective Address
