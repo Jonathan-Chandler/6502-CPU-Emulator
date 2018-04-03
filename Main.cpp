@@ -9,7 +9,8 @@ int main()
 {
   Cpu nesCpu;
   CpuTest<Cpu> testCpu(nesCpu);
-  testCpu.startTest();
+//  testCpu.startTest();
+  testCpu.testADC();
 
 //  char fileName[] = "./New folder/tutor.nes";
 //  char fileName[] = "./New folder/Legend of Zelda, The (USA).nes";

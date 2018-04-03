@@ -1223,40 +1223,39 @@ void Cpu::iRTS(uint8_t *addr)
   pc = &memory[returnAddressFull];
 }
 
-// ADC, start with C clear
-// 1st     2nd    result      N        V        C
-// -----------------------------------------------
-//  7      -2        5        0        0        1
-//  7       2        9        0        0        0
-//  7      80       87        1        0        0
-//  7      -9       -2        1        0        0
-//  7      7A       81        1        1        0
-// 80      90       10        0        1        1
-// F0      F0       E0        1        0        1
-// F8      0A        2        0        0        1
-// 
 // ADd with Carry
+// Affects Flags: S V Z C
 void Cpu::iADC(uint8_t *addr)
 {
   uint8_t value = *addr;
-  uint16_t actual = *addr;
+  uint16_t actual = getSignedRepresentation(value);
+  uint8_t largest = (value > a) ? value : a;
 
   // accumulator = accumulator + *memoryAddr
   a += value;
-  actual += a;
+  actual += getSignedRepresentation(a);
+//  unsignedRep += a;
 
   // add carry bit if set
   a += (carryFlag) ? 1 : 0;
   actual += (carryFlag) ? 1 : 0;
 
-  // check if overflow
-  overflowFlag = (actual != value);
+  // V: check if overflow
+  overflowFlag = (actual != getSignedRepresentation(value));
+  printf("actual = %x\n", actual);
+  printf("value = %x\n", value);
 
-  // check if carry
-  carryFlag = (actual >= 0x100);
+  // C: check if carry
+  //  carryFlag = (actual > 127 || actual < -128);
+  //  carryFlag = (actual > 127 || actual < -128);
+  printf("largest 0x%x\n",largest);
+  carryFlag = (a < largest);
 
-  // check if negative
-  negativeFlag = (value >= 0x80);
+  // S: check if negative
+  negativeFlag = (a >= 0x80);
+
+  // Z: zero flag
+  zeroFlag = (value == 0);
 }
 
 // Push Effective Relative address
@@ -1706,14 +1705,17 @@ void Cpu::iSBC(uint8_t *addr)
   a += (carryFlag) ? 1 : 0;
   actual += (carryFlag) ? 1 : 0;
 
-  // check if overflow
-  overflowFlag = (actual != value);
+  // V: check if overflow
+  overflowFlag = (actual != getSignedRepresentation(value));
 
-  // check if carry
-  carryFlag = (actual >= 0x100);
+  // C: check if carry
+  carryFlag = (actual > 127 || actual < -128);
 
-  // check if negative
+  // S: check if negative
   negativeFlag = (value >= 0x80);
+
+  // Z: check if zero
+  zeroFlag = (value == 0);
 }
 
 // SEt Processor status bits

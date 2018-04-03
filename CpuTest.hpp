@@ -8,8 +8,8 @@ class CpuTest
 {
   public:
     CpuTest(const T &cpuToTest);
-
     void startTest();
+    void testADC();
 
   private:
     T cpuToTest;
@@ -17,7 +17,6 @@ class CpuTest
     bool testORA();
     bool testLDA();
     bool testAND();
-    bool testADC();
 };
 
 #endif
