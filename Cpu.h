@@ -71,11 +71,14 @@ class Cpu
 //    };
 
     void doInstruction(uint8_t *instrAddr);
+    void doInstruction();
     uint16_t getProgramCounter();
     uint8_t getStackPointer();
     uint8_t getA();
     uint8_t getX();
     uint8_t getY();
+    void setMemory(uint8_t *memoryAddr);
+    void reset();
 
   private:
     typedef uint8_t* (Cpu::*AddressMode_T)(uint8_t *instructionAddr);
@@ -83,6 +86,7 @@ class Cpu
 
     static const uint8_t OperationCodeLookupTable[];
     static const uint8_t AddressModeLookupTable[];
+    static const uint8_t AddressModeSizeTable[];
 
     static const AddressMode_T AddressModeFunctionTable[]; // 
     static const OpCode_T OperationCodeFunctionTable[]; //
@@ -105,9 +109,12 @@ class Cpu
     bool crossedPage;   // signal 255-byte page boundary was crossed
     uint8_t cycles;     // number of cycles to wait before executing next instruction
 
-    uint8_t *pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
-                        // On reset, reference address given from &memory[(memory[0xFFFD] << 4) | (memory[0xFFFC])]; 
-    uint8_t *sp;        // Stack Pointer: references &memory[(0x100 -> 0x1FF)]
+    uint8_t *startAddr; // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
+    uint16_t pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
+
+//    uint8_t *pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
+//                        // On reset, reference address given from &memory[(memory[0xFFFD] << 4) | (memory[0xFFFC])]; 
+    uint8_t sp;         // Stack Pointer: references &memory[(0x100 -> 0x1FF)]
                         // SP increments high to low: 0x1FF -> 0x100 
     uint8_t a;          // Accumulator register
     uint8_t x;          // X register
@@ -164,14 +171,12 @@ class Cpu
     // D60
     //
 
-    void reset();
-
     // utility functions
     bool testPageBoundary(uint8_t addressOffset);         // test if incrementing by offset will pass page boundary
     void incrementProgramCounter(uint16_t addressOffset); // increment by addressOffset
     void setProgramCounter(uint16_t addr);              // set PC to memory[addr]
     void setStackPointer(uint8_t addr);                 // set SP to memory[0x1FF - addr]
-    int getTwosComplement(uint8_t value);               // get signed representation of uint8 value converted to signed int type
+    uint8_t getTwosComplement(uint8_t value);           // get signed representation of uint8 value converted to signed int type
     uint8_t getOnesComplement(uint8_t value);           // used with sbc
     int getSignedRepresentation(uint8_t value);         // convert uint8_t to int
     int getSignedRepresentation(uint16_t value);        // convert uint16_t to int

@@ -231,6 +231,25 @@ const Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] =
   &Cpu::AddressRelative,                    // relative value:                  r
 };
 
+const uint8_t Cpu::AddressModeSizeTable[] = 
+{
+// value         desc                          symbol
+     0,   // No address/value
+     1,   // immediate value:                 #$
+     1,   // direct zero addr + X:            d, X
+     1,   // direct zero addr + Y:            d, Y
+     1,   // direct zero addr:                d
+     2,   // absolute address + X:            a, X
+     2,   // absolute address + Y:            a, Y
+     2,   // absolute address:                a
+     1,   // indirect zero page address + X   (d, X)
+     1,   // indirect zero page address       (d)
+     1,   // indirect zero page ddress[Y]     (d), Y
+     1,   // indirect absolute address + x    (a, X)
+     1,   // indirect absolute address        (a)
+     1,   // relative value:                  r
+};
+
 const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] = 
 {
   &Cpu::iBRK,                          // BReaKpoint
@@ -355,8 +374,9 @@ Cpu::Cpu()
   overflowFlag(false),
   negativeFlag(false),
   cycles(0),
-  pc(&memory[0x34]),
-  sp(&memory[0xFD]),
+  startAddr(memory),
+  pc(0),
+  sp(0xFF),
   a(0),
   x(0),
   y(0)
@@ -377,16 +397,14 @@ void Cpu::reset()
   overflowFlag = false;
   negativeFlag = false;
 
-  // TODO: FD 34 or 1ff etc
-  // sp = &memory[0xFD];
   // pc = &memory[0x34];
-  sp = &memory[0x1FF];    
+  sp = 0xFF; 
 
   // On reset, reference address given from &memory[(memory[0xFFFD] << 8) | (memory[0xFFFC])]; 
-  uint16_t tempAddr = ((memory[0xFFFD] & EIGHT_BIT_MASK) << EIGHT_BIT_SHIFT);
-  tempAddr |= (memory[0xFFFC] & EIGHT_BIT_MASK);
-//  pc = &memory[(memory[tempAddr])];
-  pc = &memory[tempAddr];
+//  uint16_t tempAddr = ((memory[0xFFFD] & EIGHT_BIT_MASK) << EIGHT_BIT_SHIFT);
+//  tempAddr |= (memory[0xFFFC] & EIGHT_BIT_MASK);
+//  pc = tempAddr;
+  pc = 0;
 
   a = 0;
   x = 0;
@@ -401,7 +419,7 @@ uint8_t Cpu::getFlags()
   value |= interruptFlag ? interruptMask : 0;
   value |= decimalFlag ? decimalMask : 0;
   value |= breakFlag ? breakMask : 0;
-  value |= overflowFlag ? zeroMask : 0;
+  value |= overflowFlag ? overflowMask : 0;
   value |= negativeFlag ? negativeMask : 0;
   return value;
 }
@@ -417,19 +435,48 @@ void Cpu::setFlags(uint8_t value)
   negativeFlag = value & negativeMask;
 }
 
-void Cpu::doInstruction(uint8_t *instructionAddr)
+void Cpu::setMemory(uint8_t *memoryAddr)
 {
-  // extract the instruction operation code
-  uint8_t operationCode = *instructionAddr & 0xFF;
+  pc = 0;
+  startAddr = memoryAddr;
+}
+
+//void Cpu::doInstruction(uint8_t *instructionAddr)
+//{
+//  // extract the instruction operation code
+//  uint8_t operationCode = 0xFF & startAddr[pc++];
+//
+//  // get address mode ID from instruction operation code
+//  uint8_t addressModeId = AddressModeLookupTable[operationCode];
+//
+//  // get required operation function ID from table
+//  uint8_t operationCodeId = (this->OperationCodeLookupTable[operationCode]);
+//
+//  // get required address by using memory address function table with operation code
+//  uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(startAddr + pc);
+//  
+//  pc += AddressModeSizeTable[addressModeId];
+//
+//  // call required function ID with address
+//  (this->*OperationCodeFunctionTable[operationCodeId])(address);
+//}
+
+void Cpu::doInstruction()
+{
+  // extract the instruction operation code and then increment pc
+  uint8_t operationCode = 0xFF & startAddr[pc++];
 
   // get address mode ID from instruction operation code
   uint8_t addressModeId = AddressModeLookupTable[operationCode];
+
   // get required operation function ID from table
   uint8_t operationCodeId = (this->OperationCodeLookupTable[operationCode]);
 
   // get required address by using memory address function table with operation code
-  uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(instructionAddr);
+  uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(startAddr + pc);
   
+  pc += AddressModeSizeTable[addressModeId];
+
   // call required function ID with address
   (this->*OperationCodeFunctionTable[operationCodeId])(address);
 }
@@ -437,28 +484,27 @@ void Cpu::doInstruction(uint8_t *instructionAddr)
 uint16_t Cpu::getProgramCounter()
 {
   // return memory index pointed to by PC
-  return pc - &memory[0];
+  return pc;
 }
 
 uint8_t Cpu::getStackPointer()
 {
   // return index pointed to by SP range 0x0 -> 0xFF
   // sp starts at 0x1FF, moves to lower addresses
-  return sp - &memory[0x0100];
+  return sp;
 }
 
 void Cpu::setProgramCounter(uint16_t addr)
 {
   // return memory index pointed to by PC
-  pc = &memory[addr];
+  pc = addr;
 }
 
 void Cpu::setStackPointer(uint8_t addr)
 {
   // return index pointed to by SP range 0x0 -> 0xFF
   // setSp(0xff) resets to top of stack
-  sp = &memory[0x0100 + addr];
-  return;
+  sp = addr;
 }
 
 uint8_t Cpu::getA()
@@ -525,7 +571,7 @@ int Cpu::getSignedRepresentation(uint8_t value)
 }
 
 // return signed int equal to given 8-bit signed representation from 8-bit unsigned representation
-int Cpu::getTwosComplement(uint8_t value)
+uint8_t Cpu::getTwosComplement(uint8_t value)
 {
   int newValue = 0;
 
@@ -538,7 +584,8 @@ int Cpu::getTwosComplement(uint8_t value)
   }
   else
   {
-    newValue = value;
+    value = ~value;
+    newValue = value + 1;
   }
 
   return newValue;
@@ -547,7 +594,7 @@ int Cpu::getTwosComplement(uint8_t value)
 // push 8 bits onto stack and increment stack pointer
 void Cpu::pushStack(uint8_t value)
 {
-  *sp = value;
+  startAddr[0x100 + sp] = value;
   sp--;
 }
 
@@ -555,7 +602,7 @@ void Cpu::pushStack(uint8_t value)
 uint8_t Cpu::popStack()
 {
   uint8_t value;
-  value = *sp;
+  value = startAddr[0x100 + sp];
   sp++;
   return value;
 }
@@ -581,9 +628,9 @@ uint8_t *Cpu::AddressImmediate(uint8_t *instructionAddr)
   uint8_t *value = nullptr;
 
   // value is byte following instructionAddr
-  value = (instructionAddr+1);
+  value = instructionAddr;
 
-  printf("Address mode #immediate -> *%p = %x\n", value, *value);
+  //printf("Address mode #immediate -> *%p = %x\n", value, *value);
   return value;
 }
 
@@ -594,11 +641,11 @@ uint8_t *Cpu::AddressDirectZeroX(uint8_t *instructionAddr)
   uint8_t zeroPageAddr = 0;
 
   // zero page address is in byte following instruction, add X
-  zeroPageAddr = *(instructionAddr+1) + x;
+  zeroPageAddr = *(instructionAddr) + x;
 
-  tempAddr = &memory[zeroPageAddr];
+  tempAddr = startAddr + zeroPageAddr;
 
-  printf("Address mode direct ZeroPage, X -> *%p = %x\n", tempAddr, *tempAddr);
+  //printf("Address mode direct ZeroPage, X -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -609,11 +656,11 @@ uint8_t *Cpu::AddressDirectZeroY(uint8_t *instructionAddr)
   uint8_t zeroPageAddr = 0;
 
   // zero page address is in byte following instruction, add y
-  zeroPageAddr = *(instructionAddr+1) + y;
+  zeroPageAddr = *(instructionAddr) + y;
 
-  tempAddr = &memory[zeroPageAddr];
+  tempAddr = startAddr + zeroPageAddr;
 
-  printf("Address mode direct ZeroPage, Y -> *%p = %x\n", tempAddr, *tempAddr);
+//  printf("Address mode direct ZeroPage, Y -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -624,7 +671,7 @@ uint8_t *Cpu::AddressDirectZeroZ(uint8_t *instructionAddr)
 
   // low byte of zero address follows instruction byte
   // use the low byte as index into memory to get the address of the zero page
-  tempAddr = &memory[*(instructionAddr + 1)];
+  tempAddr = startAddr + *instructionAddr;
 
   return tempAddr;
 }
@@ -636,14 +683,14 @@ uint8_t *Cpu::AddressDirectAbsX(uint8_t *instructionAddr)
   uint16_t absoluteAddr = 0;
 
   // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+2) & 0xFF) << 8;
-  absoluteAddr |= *(instructionAddr+1) & 0xFF;
+  absoluteAddr = (*(instructionAddr+1) & 0xFF) << 8;
+  absoluteAddr |= *instructionAddr & 0xFF;
   absoluteAddr += x;
 
   // memory address of given absolute address + y register
-  tempAddr = &memory[absoluteAddr];
+  tempAddr = startAddr + absoluteAddr;
 
-  printf("Address mode AbsoluteAddr, Y -> *%p = %x\n", tempAddr, *tempAddr);
+//  printf("Address mode AbsoluteAddr, Y -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -654,14 +701,14 @@ uint8_t *Cpu::AddressDirectAbsY(uint8_t *instructionAddr)
   uint16_t absoluteAddr = 0;
 
   // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+2) & 0xFF) << 8;
-  absoluteAddr |= *(instructionAddr+1) & 0xFF;
+  absoluteAddr = (*(instructionAddr+1) & 0xFF) << 8;
+  absoluteAddr |= *(instructionAddr) & 0xFF;
   absoluteAddr += y;
 
   // memory address of given absolute address + y register
-  tempAddr = &memory[absoluteAddr];
+  tempAddr = startAddr + absoluteAddr;
 
-  printf("Address mode AbsoluteAddr, Y -> *%p = %x\n", tempAddr, *tempAddr);
+  //printf("Address mode AbsoluteAddr, Y -> *%p = %x\n", tempAddr, *tempAddr);
   return tempAddr;
 }
 
@@ -672,11 +719,11 @@ uint8_t *Cpu::AddressDirectAbsZ(uint8_t *instructionAddr)
   uint16_t memoryAddress = 0;
 
   // address follows instruction byte, byte order is reversed
-  memoryAddress = *(instructionAddr+2) & 0xFF << 8;
-  memoryAddress |= *(instructionAddr+1) & 0xFF;
+  memoryAddress = *(instructionAddr+1) & 0xFF << 8;
+  memoryAddress |= *(instructionAddr) & 0xFF;
 
   // use this as index into memory to get the absolute address
-  tempAddr = &memory[memoryAddress];
+  tempAddr = startAddr + memoryAddress;
 
   return tempAddr;
 }
@@ -689,15 +736,15 @@ uint8_t *Cpu::AddressIndirectZeroX(uint8_t *instructionAddr)
   uint16_t memoryAddress = 0;
 
   // zero page address follows instruction byte, add X
-  zeroPageAddr = *(instructionAddr + 1);
+  zeroPageAddr = *instructionAddr;
   zeroPageAddr += x;
 
   // get the address given at this location on the zero page, in reverse byte order
-  memoryAddress = (memory[zeroPageAddr + 1] & 0xFF) << 8;
-  memoryAddress = memory[zeroPageAddr] & 0xFF;
+  memoryAddress = (*(startAddr + zeroPageAddr + 1) & 0xFF) << 8;
+  memoryAddress = *(startAddr + zeroPageAddr) & 0xFF;
 
   // return address of the dereferenced address
-  tempAddr = &memory[memoryAddress];
+  tempAddr = startAddr + memoryAddress;
   
   return tempAddr;
 }
@@ -762,8 +809,8 @@ uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
   uint16_t absoluteAddr = 0;
 
   // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+2) & 0xFF) << 8;
-  absoluteAddr |= *(instructionAddr+1) & 0xFF;
+  absoluteAddr = (*(instructionAddr+1) & 0xFF) << 8;
+  absoluteAddr |= *(instructionAddr) & 0xFF;
 
   // memory address of given absolute address + x register
   tempAddr = &memory[absoluteAddr];
@@ -771,7 +818,7 @@ uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
   return tempAddr;
 }
 
-// indirect absolute address: (a)
+// relative address: (a)
 // Return the address: &memory[PC + signed(VAL)]; (VAL is 1 byte)
 uint8_t *Cpu::AddressRelative(uint8_t *instructionAddr)
 {
@@ -780,24 +827,19 @@ uint8_t *Cpu::AddressRelative(uint8_t *instructionAddr)
   uint16_t offset;
 
   // relative address is 1 byte following instruction
-  offset = *(instructionAddr + 1) & 0xFF;
+  offset = (*instructionAddr) & 0xFF;
 
   // convert the signed 8-bit representation to 16-bit
   if (offset >= 0x80)
   {
     offset |= 0xFF00;
   }
-  else
-  {
-    offset |= 0xFF00;
-  }
 
   // get PC and add the signed offset
-  address = getProgramCounter();
-  address += offset;
+  address = pc + offset;
 
   // memory address of current PC address + signed(VAL)
-  tempAddr = &memory[address];
+  tempAddr = startAddr + address;
 
   return tempAddr;
 }
@@ -812,9 +854,7 @@ bool Cpu::testPageBoundary(uint8_t addressOffset)
 
 void Cpu::incrementProgramCounter(uint16_t addressOffset)
 {
-  uint16_t currentPc = pc - &memory[0];
-  currentPc += addressOffset;
-  pc = &memory[currentPc];
+  pc += addressOffset;
 }
 
 // BReaKpoint
@@ -903,7 +943,7 @@ void Cpu::iBPL(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -953,7 +993,7 @@ void Cpu::iJSR(uint8_t *addr)
   pushStack(returnAddressLow);
 
   // jump
-  pc = addr;
+  pc = (uint16_t)(addr - startAddr);
 }
 
 // bitwise AND
@@ -1050,7 +1090,7 @@ void Cpu::iBMI(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -1163,7 +1203,7 @@ void Cpu::iPHK(uint8_t *addr)
 void Cpu::iJMP(uint8_t *addr)
 {
   // absolute address is in 2 byte following instruction in reverse byte order
-  pc = addr;
+  pc = (uint16_t)(addr - startAddr);
 }
 
 // Branch if oVerflow Clear
@@ -1180,7 +1220,7 @@ void Cpu::iBVC(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -1220,42 +1260,53 @@ void Cpu::iRTS(uint8_t *addr)
   returnAddressHigh = popStack();
   returnAddressFull = returnAddressLow | (returnAddressHigh << 8);
 
-  pc = &memory[returnAddressFull];
+  pc = returnAddressFull;
 }
+
+
+// A        B         RESULT                V
+// 0x7F     0x7F      (127 + 127 = -1)      T
+// <0x80    <0x80     >0x80                 T
+// >=0x80   >=0x80    < 0x80                T
+//
+// 0xF0     0xF0      (-128 - 128 = -1)     T
+// 0xF0     0xF0      (-128 - 128 = -1)     T
+// >90      >90
 
 // ADd with Carry
 // Affects Flags: S V Z C
 void Cpu::iADC(uint8_t *addr)
 {
   uint8_t value = *addr;
-  uint16_t actual = getSignedRepresentation(value);
-  uint8_t largest = (value > a) ? value : a;
+  uint16_t carryTestValue = value + a;
+  uint8_t result = value + a;
 
-  // accumulator = accumulator + *memoryAddr
-  a += value;
-  actual += getSignedRepresentation(a);
-//  unsignedRep += a;
+  // add 1 if carry was set
+  result += (carryFlag) ? 1 : 0;
+  carryTestValue += (carryFlag) ? 1 : 0;
 
-  // add carry bit if set
-  a += (carryFlag) ? 1 : 0;
-  actual += (carryFlag) ? 1 : 0;
+  // V: check if overflow - adding positives equals negative OR adding negatives equals positive
+  if ((value >= 0x80 && a >= 0x80 && result < 0x80)
+      || (value < 0x80 && a < 0x80 && result >= 0x80))
+  {
+    overflowFlag = true;
+  }
+  else
+  {
+    overflowFlag = false;
+  }
 
-  // V: check if overflow
-  overflowFlag = (actual != getSignedRepresentation(value));
-  printf("actual = %x\n", actual);
-  printf("value = %x\n", value);
+  // do addition
+  a = result;
 
   // C: check if carry
-  //  carryFlag = (actual > 127 || actual < -128);
-  //  carryFlag = (actual > 127 || actual < -128);
-  printf("largest 0x%x\n",largest);
-  carryFlag = (a < largest);
+  carryFlag = (carryTestValue >= 0x100);
 
   // S: check if negative
   negativeFlag = (a >= 0x80);
 
   // Z: zero flag
-  zeroFlag = (value == 0);
+  zeroFlag = (result == 0);
 }
 
 // Push Effective Relative address
@@ -1324,7 +1375,7 @@ void Cpu::iBVS(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -1422,7 +1473,7 @@ void Cpu::iBCC(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -1438,7 +1489,7 @@ void Cpu::iTYA(uint8_t *addr)
 // Transfer X register to Stack pointer
 void Cpu::iTXS(uint8_t *addr)
 {
-  *sp = x;
+  startAddr[0x100 + sp] = x;
 }
 
 // Transfer X register to Y register
@@ -1542,7 +1593,7 @@ void Cpu::iBCS(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -1555,7 +1606,7 @@ void Cpu::iCLV(uint8_t *addr)
 // Transfer Stack pointer to X register
 void Cpu::iTSX(uint8_t *addr)
 {
-  x = *sp;
+  x = startAddr[0x100 + sp];
 }
 
 // Transfer Y register to X register
@@ -1637,7 +1688,7 @@ void Cpu::iBNE(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
@@ -1695,27 +1746,11 @@ void Cpu::iCPX(uint8_t *addr)
 void Cpu::iSBC(uint8_t *addr)
 {
   uint8_t value = *addr;
-  int actual = getSignedRepresentation(value);
 
-  // accumulator = accumulator + *memoryAddr
-  a -= value;
-  actual -= getSignedRepresentation(a);
+  // get the 1's complement of the value being subtracted and add
+  value = getOnesComplement(value);
 
-  // add carry bit if set
-  a += (carryFlag) ? 1 : 0;
-  actual += (carryFlag) ? 1 : 0;
-
-  // V: check if overflow
-  overflowFlag = (actual != getSignedRepresentation(value));
-
-  // C: check if carry
-  carryFlag = (actual > 127 || actual < -128);
-
-  // S: check if negative
-  negativeFlag = (value >= 0x80);
-
-  // Z: check if zero
-  zeroFlag = (value == 0);
+  iADC(&value);
 }
 
 // SEt Processor status bits
@@ -1763,7 +1798,7 @@ void Cpu::iBEQ(uint8_t *addr)
       cycles += 1;
     }
 
-    pc = addr;
+    pc = (uint16_t)(addr - startAddr);
   }
 }
 
