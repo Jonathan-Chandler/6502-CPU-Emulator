@@ -1,4 +1,5 @@
-#include "Cpu.h"
+#include "Cpu.hpp"
+#include "Memory.hpp"
 #include <string.h>
 
 #define EIGHT_BIT_MASK  0xFF
@@ -226,7 +227,7 @@ const Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] =
   &Cpu::AddressIndirectZeroX,               // indirect zero page address + X   (d, X)
   &Cpu::AddressIndirectZeroZ,               // indirect zero page address       (d)
   &Cpu::AddressIndirectZeroIndexY,          // indirect zero page ddress[Y]     (d), Y
-  &Cpu::AddressIndirectAbsX,                // indirect absolute address + x    (a, X)
+  &Cpu::AddressIndirectAbsX,                // indirect absolute address + X    (a,x)
   &Cpu::AddressIndirectAbsZ,                // indirect absolute address        (a)
   &Cpu::AddressRelative,                    // relative value:                  r
 };
@@ -383,6 +384,40 @@ Cpu::Cpu()
 {
   memset(memory, 0, sizeof(memory));
   memset(memory, 0xFF, 0x2000);
+  char file[] = "cpu_dummy_writes_oam.nes";
+  Memory nesMem;
+  nesMem.loadRom(file);
+  startAddr = nesMem.getMemory();
+  printf("pc sets: %x%x\n", (uint8_t)*(startAddr + 0xFFFD) & 0xFF, (uint8_t)*(startAddr + 0xFFFC) & 0xFF);
+  pc = 0xe677;
+////  for (int i = 0; i < 8*1024*headerData.ChrRomPages; i += 16)
+////  for (int i = 0; i < 16*1024*headerData.PrgRomPages; i += 16)
+////  for (int i = 512*49; i < 1024*16*headerData.PrgRomPages; i += 16)
+//  for (int i = 0x8000; i < 0xFFFF; i += 16)
+//  {
+//    for (int x = 0; x < 16; x++)
+//    {
+//      if (i + x == 0xe831 - 0x8000)
+//      {
+//        printf("\n here \n");
+//      }
+//      printf("%02x ", *(startAddr + x + i));
+////      printf("%02x ", ChrRomData[i+x]);
+//    }
+//    
+//    if (i != 0 && i % 1024 == 0)
+//      printf("\n");
+//
+//    printf("\n");
+//  }
+//  uint16_t PlayChoiceInstRomSize = (PlayChoice & data[7]) ? 8*1024 : 0;
+//  uint16_t PlayChoicePromSize = (PlayChoice & data[7]) ? 8*1024 : 0;
+
+}
+
+void Cpu::loadRom(char *filename)
+{
+  
 }
 
 void Cpu::reset()
@@ -409,7 +444,32 @@ void Cpu::reset()
   a = 0;
   x = 0;
   y = 0;
+  pc = 0xe831;
 }
+
+void Cpu::printStatus()
+{
+  printf("A: %x\n", a);
+  printf("X: %x\n", x);
+  printf("Y: %x\n", y);
+  printf("cf: %x\n", carryFlag);
+  printf("zf: %x\n", zeroFlag);
+  printf("if: %x\n", interruptFlag);
+  printf("df: %x\n", decimalFlag);
+  printf("of: %x\n", overflowFlag);
+  printf("nf: %x\n", negativeFlag);
+  printf("sp: %x\n", sp);
+  printf("pc: %x\n", pc);
+  printf("*pc+0: %x\n", (uint8_t)*(startAddr + pc) & 0xFF);
+  printf("*pc+1: %x\n", (uint8_t)*(startAddr + (pc + 1)) & 0xFF);
+  printf("*pc+2: %x\n", (uint8_t)*(startAddr + (pc + 2)) & 0xFF);
+  printf("\n");
+}
+
+// void Cpu::printStack()
+// {
+//   printf("\n");
+// }
 
 uint8_t Cpu::getFlags()
 {
@@ -630,7 +690,6 @@ uint8_t *Cpu::AddressImmediate(uint8_t *instructionAddr)
   // value is byte following instructionAddr
   value = instructionAddr;
 
-  //printf("Address mode #immediate -> *%p = %x\n", value, *value);
   return value;
 }
 
@@ -668,10 +727,11 @@ uint8_t *Cpu::AddressDirectZeroY(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressDirectZeroZ(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
+  uint8_t zeroPageAddr = *instructionAddr;
 
   // low byte of zero address follows instruction byte
   // use the low byte as index into memory to get the address of the zero page
-  tempAddr = startAddr + *instructionAddr;
+  tempAddr = startAddr + zeroPageAddr;
 
   return tempAddr;
 }
@@ -683,7 +743,8 @@ uint8_t *Cpu::AddressDirectAbsX(uint8_t *instructionAddr)
   uint16_t absoluteAddr = 0;
 
   // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+1) & 0xFF) << 8;
+  absoluteAddr = *(instructionAddr+1) & 0xFF;
+  absoluteAddr <<= 8;
   absoluteAddr |= *instructionAddr & 0xFF;
   absoluteAddr += x;
 
@@ -701,7 +762,8 @@ uint8_t *Cpu::AddressDirectAbsY(uint8_t *instructionAddr)
   uint16_t absoluteAddr = 0;
 
   // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+1) & 0xFF) << 8;
+  absoluteAddr = *(instructionAddr+1) & 0xFF;
+  absoluteAddr <<= 8;
   absoluteAddr |= *(instructionAddr) & 0xFF;
   absoluteAddr += y;
 
@@ -716,15 +778,17 @@ uint8_t *Cpu::AddressDirectAbsY(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressDirectAbsZ(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
-  uint16_t memoryAddress = 0;
+  uint16_t absoluteAddr = 0;
 
   // address follows instruction byte, byte order is reversed
-  memoryAddress = *(instructionAddr+1) & 0xFF << 8;
-  memoryAddress |= *(instructionAddr) & 0xFF;
+  absoluteAddr = *(instructionAddr+1) & 0xFF;
+  absoluteAddr <<= 8;
+  absoluteAddr |= *(instructionAddr) & 0xFF;
 
   // use this as index into memory to get the absolute address
-  tempAddr = startAddr + memoryAddress;
+  tempAddr = startAddr + absoluteAddr;
 
+  printf("memoryAddress = %x\n",absoluteAddr);
   return tempAddr;
 }
 
@@ -732,19 +796,19 @@ uint8_t *Cpu::AddressDirectAbsZ(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressIndirectZeroX(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
-  uint8_t zeroPageAddr = 0;
-  uint16_t memoryAddress = 0;
+  uint8_t zeroPageAddr = *instructionAddr;
+  uint16_t absoluteAddr = 0;
 
-  // zero page address follows instruction byte, add X
-  zeroPageAddr = *instructionAddr;
+  // zero page address incremented by x before dereference
   zeroPageAddr += x;
 
   // get the address given at this location on the zero page, in reverse byte order
-  memoryAddress = (*(startAddr + zeroPageAddr + 1) & 0xFF) << 8;
-  memoryAddress = *(startAddr + zeroPageAddr) & 0xFF;
+  absoluteAddr = *(startAddr + (zeroPageAddr + 1)) & 0xFF;
+  absoluteAddr <<= 8;
+  absoluteAddr = *(startAddr + zeroPageAddr) & 0xFF;
 
   // return address of the dereferenced address
-  tempAddr = startAddr + memoryAddress;
+  tempAddr = startAddr + absoluteAddr;
   
   return tempAddr;
 }
@@ -753,18 +817,16 @@ uint8_t *Cpu::AddressIndirectZeroX(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressIndirectZeroZ(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
-  uint8_t zeroPageAddr = 0;
-  uint16_t memoryAddress = 0;
-
-  // zero page address follows instruction byte
-  zeroPageAddr = *(instructionAddr + 1);
+  uint8_t zeroPageAddr = *instructionAddr;
+  uint16_t absoluteAddr = 0;
 
   // get the address given at this location on the zero page, in reverse byte order
-  memoryAddress = (memory[zeroPageAddr + 1] & 0xFF) << 8;
-  memoryAddress = memory[zeroPageAddr] & 0xFF;
+  absoluteAddr = *(startAddr + (zeroPageAddr + 1)) & 0xFF;
+  absoluteAddr <<= 8;
+  absoluteAddr = *(startAddr + zeroPageAddr) & 0xFF;
 
   // return address of the dereferenced address
-  tempAddr = &memory[memoryAddress];
+  tempAddr = startAddr + absoluteAddr;
   
   return tempAddr;
 }
@@ -773,14 +835,18 @@ uint8_t *Cpu::AddressIndirectZeroZ(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressIndirectZeroIndexY(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
-  uint16_t zeroPageDereferencedAddr = 0;
+  uint8_t zeroPageAddr = *instructionAddr;
+  uint16_t absoluteAddr = 0;
   
   // dereference value at given zero page address, read 2 bytes in reverse byte order
-  zeroPageDereferencedAddr = (memory[*(instructionAddr+1) + 1] & 0xFF) << 8;
-  zeroPageDereferencedAddr |= memory[*(instructionAddr+1)] & 0xFF;
+  absoluteAddr = *(startAddr + (zeroPageAddr + 1)) & 0xFF;
+  absoluteAddr <<= 8;
+  absoluteAddr = *(startAddr + zeroPageAddr) & 0xFF;
 
-  // increment Y bytes after dereferencing the zero page's address
-  tempAddr = &memory[zeroPageDereferencedAddr + y];
+  // add index
+  absoluteAddr += y;
+
+  tempAddr = startAddr + absoluteAddr;
 
   return tempAddr;
 }
@@ -789,15 +855,22 @@ uint8_t *Cpu::AddressIndirectZeroIndexY(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressIndirectAbsX(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
+  uint16_t directAddr = 0;
   uint16_t absoluteAddr = 0;
 
-  // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+2) & 0xFF) << 8;
-  absoluteAddr |= *(instructionAddr+1) & 0xFF;
-  absoluteAddr += x;
+  // add x to direct address
+  directAddr = *(instructionAddr+1) & 0xFF;
+  directAddr <<= 8;
+  directAddr |= *(instructionAddr) & 0xFF;
+  directAddr += x;
+
+  // get absolute address by dereferencing directAddr
+  absoluteAddr = *(startAddr + (directAddr + 1)) & 0xFF;
+  absoluteAddr <<= 8;
+  absoluteAddr = *(startAddr + directAddr) & 0xFF;
 
   // memory address of given absolute address + x register
-  tempAddr = &memory[absoluteAddr];
+  tempAddr = startAddr + absoluteAddr;
 
   return tempAddr;
 }
@@ -806,14 +879,21 @@ uint8_t *Cpu::AddressIndirectAbsX(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
+  uint16_t directAddr = 0;
   uint16_t absoluteAddr = 0;
 
-  // absolute address is in 2 byte following instruction in reverse byte order
-  absoluteAddr = (*(instructionAddr+1) & 0xFF) << 8;
-  absoluteAddr |= *(instructionAddr) & 0xFF;
+  // get direct address
+  directAddr = *(instructionAddr+1) & 0xFF;
+  directAddr <<= 8;
+  directAddr |= *(instructionAddr) & 0xFF;
+
+  // dereference direct address to get absolute address
+  absoluteAddr = *(startAddr + (directAddr + 1)) & 0xFF;
+  absoluteAddr <<= 8;
+  absoluteAddr = *(startAddr + directAddr) & 0xFF;
 
   // memory address of given absolute address + x register
-  tempAddr = &memory[absoluteAddr];
+  tempAddr = startAddr + absoluteAddr;
 
   return tempAddr;
 }
@@ -823,23 +903,23 @@ uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
 uint8_t *Cpu::AddressRelative(uint8_t *instructionAddr)
 {
   uint8_t *tempAddr = nullptr;
-  uint16_t address;
+  uint16_t absoluteAddr;
   uint16_t offset;
 
   // relative address is 1 byte following instruction
   offset = (*instructionAddr) & 0xFF;
 
-  // convert the signed 8-bit representation to 16-bit
+  // extend signed 8-bit representation to signed 16-bit
   if (offset >= 0x80)
   {
     offset |= 0xFF00;
   }
 
   // get PC and add the signed offset
-  address = pc + offset;
+  absoluteAddr = pc + offset;
 
   // memory address of current PC address + signed(VAL)
-  tempAddr = startAddr + address;
+  tempAddr = startAddr + absoluteAddr;
 
   return tempAddr;
 }
@@ -1027,7 +1107,7 @@ void Cpu::iBIT(uint8_t *addr)
   // Z: set as though the value were ANDed with the accumulator
   zeroFlag = ((value & a) == 0);
 
-  // S: set to match bit 7 in the value stored at the tested address
+  // N: set to match bit 7 in the value stored at the tested address
   negativeFlag = (value & negativeMask);
 
   // V: set to match bit 6 in the value stored at the tested address

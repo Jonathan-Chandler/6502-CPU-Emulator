@@ -1,5 +1,5 @@
-#ifndef CPU_H
-#define CPU_H
+#ifndef CPU_HPP
+#define CPU_HPP
 #include <iostream>
 
 class Cpu
@@ -8,6 +8,7 @@ class Cpu
     Cpu();
     uint8_t getFlags();
     void setFlags(uint8_t value);
+    void loadRom(char *filename);
 
     enum FlagMasks
     {
@@ -79,6 +80,7 @@ class Cpu
     uint8_t getY();
     void setMemory(uint8_t *memoryAddr);
     void reset();
+    void printStatus();
 
   private:
     typedef uint8_t* (Cpu::*AddressMode_T)(uint8_t *instructionAddr);

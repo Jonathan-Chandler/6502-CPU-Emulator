@@ -205,6 +205,54 @@ void CpuTest<T>::testSBC()
     printf("sbc success\n");
 }
 
+//template <class T>
+//void CpuTest<T>::testLDA()
+//{
+//  InstructionTest_t *currentTest = CpuTest<T>::SBC_Instructions;
+//  size_t numberOfTests = sizeof(SBC_Instructions)/sizeof(SBC_Instructions[0]);
+//  uint8_t flagRes;
+//  bool testFailed = false;
+//
+//  for (size_t i = 0; i < numberOfTests; i++)
+//  {
+//    currentTest = &CpuTest<T>::SBC_Instructions[i];
+//    cpuToTest.reset();
+//    cpuToTest.setMemory(currentTest->instructionPointer);
+//    for (uint8_t instructionsDone = 0; instructionsDone < currentTest->instructionCount; instructionsDone++)
+//    {
+//      cpuToTest.doInstruction();
+//    }
+//    flagRes = cpuToTest.getFlags();
+//
+//    if (cpuToTest.getA() != currentTest->expectedRegisterA)
+//    {
+//      printf("fail subtraction, res: %x != %x\n", cpuToTest.getA(), currentTest->expectedRegisterA);
+//    }
+//
+//    // test negative
+//    if ((flagRes & T::negativeMask) != (currentTest->expectedFlags & T::negativeMask))
+//    {
+//      printf("negative flag fails\n");
+//    }
+//
+//    // test overflow
+//    if ((flagRes & T::overflowMask) != (currentTest->expectedFlags & T::overflowMask))
+//    {
+//      printf("overflow flag fails\n");
+//    }
+//
+//    // test carry
+//    if ((flagRes & T::carryMask) != (currentTest->expectedFlags & T::carryMask))
+//    {
+//      printf("carry flag fails\n");
+//    }
+//  }
+//
+//  if (testFailed)
+//    printf("failed sbc\n");
+//  else
+//    printf("sbc success\n");
+//}
 // 1st     2nd    result      N        V        C
 // -----------------------------------------------
 //  7      -2        5        0        0        1
@@ -259,5 +307,6 @@ typename CpuTest<T>::InstructionTest_t CpuTest<T>::SBC_Instructions[] =
 // 10      90       80        1        1        0
 // 10      91       7F        0        0        0
 // -1      -1       00        0        0        1
+
 
 

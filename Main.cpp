@@ -1,17 +1,29 @@
 #include <iostream>
-#include "Ppu.hpp"
-#include "Cpu.h"
-#include "Rom.h"
+#include <string>
 #include <chrono>
+#include "Ppu.hpp"
+#include "Cpu.hpp"
+#include "Memory.hpp"
 #include "CpuTest.tcc"
 
 int main()
 {
   Cpu nesCpu;
-  CpuTest<Cpu> testCpu(nesCpu);
+  std::string c = "";
+  while (c != "x")
+  {
+    nesCpu.printStatus();
+    std::cin >> c;
+    nesCpu.doInstruction();
+  }
+//  CpuTest<Cpu> testCpu(nesCpu);
+//  testCpu.testADC();
+//  testCpu.testSBC();
 //  testCpu.startTest();
-  testCpu.testADC();
-  testCpu.testSBC();
+
+//  char file[] = "cpu_dummy_writes_oam.nes";
+//  Memory nesMem;
+//  nesMem.loadRom(file);
 
 //  char fileName[] = "./New folder/tutor.nes";
 //  char fileName[] = "./New folder/Legend of Zelda, The (USA).nes";
