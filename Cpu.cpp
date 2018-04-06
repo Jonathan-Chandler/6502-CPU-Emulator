@@ -384,12 +384,7 @@ Cpu::Cpu()
 {
   memset(memory, 0, sizeof(memory));
   memset(memory, 0xFF, 0x2000);
-  char file[] = "cpu_dummy_writes_oam.nes";
-  Memory nesMem;
-  nesMem.loadRom(file);
-  startAddr = nesMem.getMemory();
-  printf("pc sets: %x%x\n", (uint8_t)*(startAddr + 0xFFFD) & 0xFF, (uint8_t)*(startAddr + 0xFFFC) & 0xFF);
-  pc = 0xe677;
+
 ////  for (int i = 0; i < 8*1024*headerData.ChrRomPages; i += 16)
 ////  for (int i = 0; i < 16*1024*headerData.PrgRomPages; i += 16)
 ////  for (int i = 512*49; i < 1024*16*headerData.PrgRomPages; i += 16)
@@ -415,9 +410,21 @@ Cpu::Cpu()
 
 }
 
+void Cpu::setPc(uint16_t counter)
+{
+  pc = counter;
+}
+
 void Cpu::loadRom(char *filename)
 {
-  
+  Memory nesMem;
+  nesMem.loadRom(filename);
+  startAddr = nesMem.getMemory();
+  //  printf("pc sets: %x%x\n", (uint8_t)*(startAddr + 0xFFFD) & 0xFF, (uint8_t)*(startAddr + 0xFFFC) & 0xFF);
+  pc = (uint8_t)*(startAddr + 0xFFFD) & 0xFF;
+  pc <<= 8;
+  pc |= (uint8_t)*(startAddr + 0xFFFC) & 0xFF;
+  printf("pc sets: %x\n",pc);
 }
 
 void Cpu::reset()
@@ -466,10 +473,55 @@ void Cpu::printStatus()
   printf("\n");
 }
 
-// void Cpu::printStack()
-// {
-//   printf("\n");
-// }
+void Cpu::printZeroPage()
+{
+//  for (int i = 0; i < 16384*headerData.PrgRomPages; i += 16)
+//  {
+//    for (int x = 0; x < 16; x++)
+//    {
+//      if (i + x == 0xe831 - 0x8000)
+//      {
+//        printf("\n here \n");
+//      }
+//      printf("%02x ", PrgRomData[i+x]);
+////      printf("%02x ", ChrRomData[i+x]);
+//    }
+//    
+//    if (i != 0 && i % 1024 == 0)
+//      printf("\n");
+//
+//    printf("\n");
+//  }
+  printf("Zero Page:\n");
+
+  for (uint16_t x = 0; x < 0xFF; x+=0x10)
+  {
+    printf("%2x: ", x);
+    for (uint16_t y = 0; y < 16; y++)
+    {
+      printf("%2x ", (uint8_t)*(startAddr + x + y) & 0xFF);
+    }
+    printf("\n");
+  }
+
+  printf("\n");
+}
+
+void Cpu::printStack()
+{
+  printf("Stack:\n");
+
+  for (uint16_t x = 0; x < 0xFF; x+=0x10)
+  {
+    printf("%2x: ", (0xFF - x));
+
+    for (uint16_t y = 0; y < 16; y++)
+    {
+      printf("%2x ", (uint8_t)*(startAddr + 0x1FF - x - y) & 0xFF);
+    }
+    printf("\n");
+  }
+}
 
 uint8_t Cpu::getFlags()
 {
@@ -535,10 +587,10 @@ void Cpu::doInstruction()
   // get required address by using memory address function table with operation code
   uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(startAddr + pc);
   
-  pc += AddressModeSizeTable[addressModeId];
-
   // call required function ID with address
   (this->*OperationCodeFunctionTable[operationCodeId])(address);
+
+  pc += AddressModeSizeTable[addressModeId];
 }
 
 uint16_t Cpu::getProgramCounter()
@@ -635,18 +687,8 @@ uint8_t Cpu::getTwosComplement(uint8_t value)
 {
   int newValue = 0;
 
-  // test sign bit: 1000 0000
-  if (value & 0x80)
-  {
-    // negative value
-    value = ~value;
-    newValue = value + 1;
-  }
-  else
-  {
-    value = ~value;
-    newValue = value + 1;
-  }
+  value = ~value;
+  newValue = value + 1;
 
   return newValue;
 }
@@ -662,8 +704,10 @@ void Cpu::pushStack(uint8_t value)
 uint8_t Cpu::popStack()
 {
   uint8_t value;
-  value = startAddr[0x100 + sp];
+
   sp++;
+  value = *(startAddr + 0x100 + sp);
+
   return value;
 }
 
@@ -1430,9 +1474,16 @@ void Cpu::iROR(uint8_t *addr)
 }
 
 // PulL Accumulator
+// Affects Flags: S Z
 void Cpu::iPLA(uint8_t *addr)
 {
   a = popStack();
+
+  // Z: result was zero
+  zeroFlag = (a == 0);
+
+  // S: result was negative
+  negativeFlag = (a >= 0x80);
 }
 
 // ReTurn from subroutine Long
@@ -1530,7 +1581,11 @@ void Cpu::iTXA(uint8_t *addr)
 {
   a = x;
 
+  // Z: 
   zeroFlag = (a == 0);
+
+  // S: 
+  negativeFlag = (a >= 0x80);
 }
 
 // PusH data Bank register
@@ -1563,13 +1618,24 @@ void Cpu::iTYA(uint8_t *addr)
 {
   a = y;
 
+  // Z: 
   zeroFlag = (a == 0);
+
+  // S: 
+  negativeFlag = (a >= 0x80);
 }
 
 // Transfer X register to Stack pointer
+// Affect Flags: S Z
 void Cpu::iTXS(uint8_t *addr)
 {
-  startAddr[0x100 + sp] = x;
+  *(startAddr + 0x100 + sp) = x;
+
+  // Z: 
+  zeroFlag = (x == 0);
+
+  // S: 
+  negativeFlag = (x >= 0x80);
 }
 
 // Transfer X register to Y register
@@ -1640,6 +1706,7 @@ void Cpu::iTAY(uint8_t *addr)
 }
 
 // Transfer Accumulator to X register
+// Affects Flags: S Z
 void Cpu::iTAX(uint8_t *addr)
 {
   uint8_t value = a;
@@ -1684,9 +1751,16 @@ void Cpu::iCLV(uint8_t *addr)
 }
 
 // Transfer Stack pointer to X register
+// Affect Flags: S Z
 void Cpu::iTSX(uint8_t *addr)
 {
-  x = startAddr[0x100 + sp];
+  x = *(startAddr + 0x100 + sp);
+
+  // Z: 
+  zeroFlag = (x == 0);
+
+  // S: 
+  negativeFlag = (x >= 0x80);
 }
 
 // Transfer Y register to X register
@@ -1699,21 +1773,44 @@ void Cpu::iTYX(uint8_t *addr)
 // Affects Flags: S Z C
 void Cpu::iCPY(uint8_t *addr)
 {
+  uint8_t result;
   uint8_t value = *addr;
-  uint16_t carryTest = getOnesComplement(value);
-  // TODO - branch
+  uint16_t carryTest = y;
   
-  // test overflow
-  carryFlag = ((carryTest + y) > 0xFF);
-
+  // Z:
   zeroFlag = (y == value);
+
+  value = getTwosComplement(value);
+  carryTest += value;
+  result = value + y;
+
+  // C:
+  carryFlag = (carryTest >= 0x100);
+
+  // N:
+  negativeFlag = (result >= 0x80);
 }
 
 // CoMPare (to accumulator)
 // Affects Flags: S Z C
 void Cpu::iCMP(uint8_t *addr)
 {
-  // TODO - branch
+  uint8_t result;
+  uint8_t value = *addr;
+  uint16_t carryTest = a;
+  
+  // Z:
+  zeroFlag = (a == value);
+
+  value = getTwosComplement(value);
+  carryTest += value;
+  result = value + a;
+
+  // C:
+  carryFlag = (carryTest >= 0x100);
+
+  // N:
+  negativeFlag = (result >= 0x80);
 }
 
 // REset Processor status bits
@@ -1806,7 +1903,22 @@ void Cpu::iJML(uint8_t *addr)
 // Affects Flags: S Z C
 void Cpu::iCPX(uint8_t *addr)
 {
-  // TODO - branch
+  uint8_t result;
+  uint8_t value = *addr;
+  uint16_t carryTest = x;
+  
+  // Z:
+  zeroFlag = (x == value);
+
+  value = getTwosComplement(value);
+  carryTest += value;
+  result = value + x;
+
+  // C:
+  carryFlag = (carryTest >= 0x100);
+
+  // N:
+  negativeFlag = (result >= 0x80);
 }
 
 // SBC, starting with C set:

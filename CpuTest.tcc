@@ -26,6 +26,17 @@ void CpuTest<T>::startTest()
 //  }
 }
 
+//template <class T>
+//bool CpuTest<T>::testDisplay()
+//{
+//  uint8_t value = 5;
+//
+//  if (cpuToTest.getA() == value)
+//    return true;
+//  return false;
+//}
+
+
 template <class T>
 bool CpuTest<T>::testORA()
 {

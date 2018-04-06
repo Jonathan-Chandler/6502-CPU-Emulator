@@ -20,6 +20,18 @@ typedef uint8_t sprite2[4][4];
 // ~streamA & streamB = green;
 // ~streamA & ~streamB = transparent;
 
+// Memory (section 3)
+// 
+// Memory display. Can also be used to modify memory.
+// 
+//     3F00-3F1F — Palettes. Some of the cells are mirrors.
+//     S000-S11F — OAM. For example, S000 holds the y position for sprite 0.
+//         S000-S0FF — Primary OAM.
+//         S100-S11F — Secondary OAM (normally not directly accessible).
+//     0000-03FF — Pattern tables. This 1KB segment is mirrored eight times to fill out the entire CHR space.
+//     2000-23FF — Nametables. The simulation uses a kind of "one-screen low" mirroring, and the data here is mirrored to fill out the entire nametable space.
+//         This layout for pattern and name tables happens to be the same as the PPU A13 variant of iNES Mapper 218.
+
 
 class Ppu
 {
@@ -29,6 +41,8 @@ class Ppu
     void RenderAll();
     void SetData(uint8_t *data);
     void AddSprites();
+    void addPixels();
+    void updatePixels();
       
   private:
     static const colors rgb[];
@@ -37,7 +51,7 @@ class Ppu
     size_t pixelCount;
     uint8_t sprite[8];
     std::vector<SDL_Rect*> pSprites;
-    std::vector<uint8_t*> pRgb;
+    std::vector<uint8_t> pRgb;
 
     // SDL window elements
     SDL_Window *pWindow;

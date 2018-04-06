@@ -5,16 +5,50 @@
 #include "Cpu.hpp"
 #include "Memory.hpp"
 #include "CpuTest.tcc"
+#include <string.h>
 
 int main()
 {
+  uint8_t program[] = {0xa2, 0x00, 0xa0, 0x00, 0x8a, 0x99, 0x00, 0x02, 0x48, 0xe8, 0xc8, 0xc0, 0x10, 0xd0, 0xf5, 0x68, 0x99, 0x00, 0x02, 0xc8, 0xc0, 0x20, 0xd0, 0xf7};
+  uint8_t *mem;
+  mem = (uint8_t *) malloc(0x10000);
+  memcpy(&mem[0x600], program, sizeof(program));
+
+//  char file[] = "cpu_dummy_writes_oam.nes";
+  Ppu nesPpu;
   Cpu nesCpu;
+  nesCpu.setMemory(mem);
+  nesCpu.setPc(0x0600);
+  uint8_t *chrData = &mem[0x0200];
+  nesPpu.SetData(chrData);
+  nesPpu.addPixels();
+////  nesCpu.loadRom(file);
   std::string c = "";
   while (c != "x")
   {
     nesCpu.printStatus();
-    std::cin >> c;
+    c = getchar();
     nesCpu.doInstruction();
+    nesCpu.printZeroPage();
+    nesCpu.printStack();
+
+    printf("\n");
+    printf("Chr Page:\n");
+
+    for (uint16_t x = 0; x < 0x20; x+=0x10)
+    {
+      printf("%2x: ", x);
+      for (uint16_t y = 0; y < 0x10; y++)
+      {
+        printf("%2x ", (uint8_t)*(chrData + x + y) & 0xFF);
+      }
+      printf("\n");
+    }
+
+    printf("\n");
+    nesPpu.updatePixels();
+    nesPpu.RenderAll();
+//    nesPpu.RenderAll();
   }
 //  CpuTest<Cpu> testCpu(nesCpu);
 //  testCpu.testADC();

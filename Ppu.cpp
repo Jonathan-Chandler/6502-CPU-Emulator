@@ -3,7 +3,7 @@
 #define WINDOW_WIDTH 1024
 #define WINDOW_HEIGHT 768
 
-const colors Ppu::rgb[] = \
+const colors Ppu::rgb[] = 
 {
   {101, 101, 101},
   {0, 45, 105},
@@ -68,31 +68,65 @@ void Ppu::SetData(uint8_t *data)
   chrData = data;
 }
 
-void Ppu::AddSprites()
+//void Ppu::AddSprites()
+//{
+//  SDL_Rect *sprite;
+//  uint8_t *rgbValues;
+//  int y = 0;
+//
+//  for (int spriteNum = 0; spriteNum < 1024; spriteNum+=16)
+//  {
+//    for (int x = 0; x < 16; x++)
+//    {
+//      sprite = new SDL_Rect;
+//      rgbValues = new uint8_t[3];
+//
+//      rgbValues[0] =  chrData[x + y] & ~chrData[x + y + 8];   
+//      rgbValues[1] = ~chrData[x + y] &  chrData[x + y + 8];   
+//      rgbValues[2] =  chrData[x + y] &  chrData[x + y + 8];   
+//
+//      sprite->x = 8;
+//      sprite->y = 1;
+//      sprite->w = 1;
+//      sprite->h = 1;
+//
+//      pRgb.push_back(rgbValues);
+//      pSprites.push_back(sprite);
+//    }
+//  }
+//}
+
+void Ppu::addPixels()
 {
+  int windowHeight;
+  int windowWidth;
+  SDL_GetWindowSize(pWindow, &windowWidth, &windowHeight);
+  int rWidth = windowWidth/256;
+  int rHeight = windowHeight/240;
   SDL_Rect *sprite;
-  uint8_t *rgbValues;
+  uint8_t rgbValues;
   int y = 0;
 
-  for (int spriteNum = 0; spriteNum < 1024; spriteNum+=16)
+  for (int pixelNum = 0; pixelNum < 32; pixelNum++)
   {
-    for (int x = 0; x < 16; x++)
-    {
-      sprite = new SDL_Rect;
-      rgbValues = new uint8_t[3];
+    sprite = new SDL_Rect;
+    rgbValues = chrData[pixelNum];   
 
-      rgbValues[0] =  chrData[x + y] & ~chrData[x + y + 8];   
-      rgbValues[1] = ~chrData[x + y] &  chrData[x + y + 8];   
-      rgbValues[2] =  chrData[x + y] &  chrData[x + y + 8];   
+    sprite->x = pixelNum * rWidth;
+    sprite->y = 0;
+    sprite->w = rWidth;
+    sprite->h = rHeight;
 
-      sprite->x = 8;
-      sprite->y = 1;
-      sprite->w = 1;
-      sprite->h = 1;
+    pRgb.push_back(rgbValues);
+    pSprites.push_back(sprite);
+  }
+}
 
-      pRgb.push_back(rgbValues);
-      pSprites.push_back(sprite);
-    }
+void Ppu::updatePixels()
+{
+  for (int pixelNum = 0; pixelNum < 32; pixelNum++)
+  {
+    pRgb[pixelNum] = chrData[pixelNum];
   }
 }
 //  SDL_Rect *sprite;
@@ -120,14 +154,21 @@ void Ppu::AddSprites()
 
 void Ppu::RenderAll()
 {
+//  for (uint16_t x = 0; x < 10; x++)
+//  {
+//    printf("%x ", *(chrData + x));
+//  }
+//  printf("\n");
+//}
+
   SDL_SetRenderDrawColor(pRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(pRenderer);
-  SDL_SetRenderDrawColor(pRenderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-  size_t i = 0;
+//  SDL_SetRenderDrawColor(pRenderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
-  for (i = 0; i < pSprites.size(); i++)
+  std::vector<SDL_Rect*> pSprites;
+  for (size_t i = 0; i < 0x10; i++)
   {
-    SDL_SetRenderDrawColor(pRenderer, pRgb[i][0], pRgb[i][1], pRgb[i][2], SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(pRenderer, rgb[pRgb[i]][0], rgb[pRgb[i]][1], rgb[pRgb[i]][2], SDL_ALPHA_OPAQUE);
 //    SDL_RenderDrawRect(pRenderer, pSprites[i]);
     SDL_RenderFillRect(pRenderer, pSprites[i]);
 //    printf("rgbValues[0] = %02x\n", pRgb[i][0]);
@@ -136,7 +177,19 @@ void Ppu::RenderAll()
 //    printf("pSprites->x = %02x\n", pSprites[i]->x);
 //    printf("pSprites->y= %02x\n", pSprites[i]->y);
   }
+//  for (i = 0; i < pSprites.size(); i++)
+//  {
+//    SDL_SetRenderDrawColor(pRenderer, pRgb[i][0], pRgb[i][1], pRgb[i][2], SDL_ALPHA_OPAQUE);
+////    SDL_RenderDrawRect(pRenderer, pSprites[i]);
+//    SDL_RenderFillRect(pRenderer, pSprites[i]);
+////    printf("rgbValues[0] = %02x\n", pRgb[i][0]);
+////    printf("rgbValues[1] = %02x\n", pRgb[i][1]);
+////    printf("rgbValues[2] = %02x\n", pRgb[i][2]);
+////    printf("pSprites->x = %02x\n", pSprites[i]->x);
+////    printf("pSprites->y= %02x\n", pSprites[i]->y);
+//  }
 
   SDL_RenderPresent(pRenderer);
 }
+
 

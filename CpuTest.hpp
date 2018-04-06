@@ -64,6 +64,7 @@ class CpuTest
     bool testORA();
     bool testLDA();
     bool testAND();
+    bool testSnake();
 };
 
 #endif
