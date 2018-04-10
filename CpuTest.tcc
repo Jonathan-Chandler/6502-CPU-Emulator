@@ -18,7 +18,6 @@ void CpuTest<T>::startTest()
   {
     printf("pass test LDA\n");
   }
-  printf("test recomp9\n");
 
 //  if (!testORA())
 //  {

@@ -369,8 +369,8 @@ const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] =
 Cpu::Cpu()
 :
   carryFlag(false),
-  zeroFlag(true),
-  interruptFlag(true),
+  zeroFlag(false),
+  interruptFlag(false),
   decimalFlag(false),
   overflowFlag(false),
   negativeFlag(false),
@@ -575,8 +575,8 @@ void Cpu::setMemory(uint8_t *memoryAddr)
 
 void Cpu::doInstruction()
 {
-  // extract the instruction operation code and then increment pc
-  uint8_t operationCode = 0xFF & startAddr[pc++];
+  // extract the instruction operation code 
+  uint8_t operationCode = 0xFF & startAddr[pc];
 
   // get address mode ID from instruction operation code
   uint8_t addressModeId = AddressModeLookupTable[operationCode];
@@ -585,12 +585,13 @@ void Cpu::doInstruction()
   uint8_t operationCodeId = (this->OperationCodeLookupTable[operationCode]);
 
   // get required address by using memory address function table with operation code
-  uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(startAddr + pc);
+  uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(startAddr + pc + 1);
+
+  // increment pc by required bytes: 1 for opcode + 0..2 for address mode
+  pc += AddressModeSizeTable[addressModeId] + 1;
   
   // call required function ID with address
   (this->*OperationCodeFunctionTable[operationCodeId])(address);
-
-  pc += AddressModeSizeTable[addressModeId];
 }
 
 uint16_t Cpu::getProgramCounter()
@@ -959,8 +960,8 @@ uint8_t *Cpu::AddressRelative(uint8_t *instructionAddr)
     offset |= 0xFF00;
   }
 
-  // get PC and add the signed offset
-  absoluteAddr = pc + offset;
+  // get PC and add the signed offset, add opcode and address size here
+  absoluteAddr = pc + offset + 2;
 
   // memory address of current PC address + signed(VAL)
   tempAddr = startAddr + absoluteAddr;
@@ -1328,6 +1329,7 @@ void Cpu::iJMP(uint8_t *addr)
 {
   // absolute address is in 2 byte following instruction in reverse byte order
   pc = (uint16_t)(addr - startAddr);
+  printf("memoryAddress = %x = %p - %p\n",pc, addr, startAddr);
 }
 
 // Branch if oVerflow Clear

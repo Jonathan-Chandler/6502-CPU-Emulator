@@ -56,6 +56,5 @@ class Ppu
     // SDL window elements
     SDL_Window *pWindow;
     SDL_Renderer *pRenderer;
-    //std::vector<Entity*> pRegisteredEntities;
 };
 #endif
