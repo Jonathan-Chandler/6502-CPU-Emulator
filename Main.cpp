@@ -46,8 +46,8 @@ int main()
   nesPpu.SetData(chrData);
   nesPpu.addPixels();
 ////  nesCpu.loadRom(file);
-  std::string c = "";
-  while (c != "x")
+  std::string c = "x";
+  while (true)
   {
     nesCpu.printStatus();
 //    c = getchar();
@@ -55,44 +55,9 @@ int main()
     nesCpu.printZeroPage();
     nesCpu.printStack();
 
-    printf("\n");
-    printf("Chr Page:\n");
-
-    for (uint16_t x = 0; x < 0x20; x+=0x10)
-    {
-      printf("%2x: ", x);
-      for (uint16_t y = 0; y < 0x10; y++)
-      {
-        printf("%2x ", (uint8_t)*(chrData + x + y) & 0xFF);
-      }
-      printf("\n");
-    }
-
-//    printf("\n");
     nesPpu.updatePixels();
     nesPpu.RenderAll();
-    c = getchar();
-//    nesPpu.RenderAll();
   }
-//  CpuTest<Cpu> testCpu(nesCpu);
-//  testCpu.testADC();
-//  testCpu.testSBC();
-//  testCpu.startTest();
-
-//  char file[] = "cpu_dummy_writes_oam.nes";
-//  Memory nesMem;
-//  nesMem.loadRom(file);
-
-//  char fileName[] = "./New folder/tutor.nes";
-//  char fileName[] = "./New folder/Legend of Zelda, The (USA).nes";
-//  char fileName[] = "./New folder/Double Dragon 2 - The Revenge (U).nes";
-//  Ppu nesPpu;
-//  Rom nesRom;
-  //nesRom.load();
-//  nesRom.load(fileName);
-//  nesPpu.SetData(nesRom.getChrRomData());
-//  nesPpu.AddSprites();
-//  nesPpu.RenderAll();
 
   /*
   size_t frameCount = 0;

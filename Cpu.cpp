@@ -1,6 +1,7 @@
 #include "Cpu.hpp"
 #include "Memory.hpp"
 #include <string.h>
+#include <cstdlib>
 
 #define EIGHT_BIT_MASK  0xFF
 #define EIGHT_BIT_SHIFT 8
@@ -22,8 +23,8 @@ enum AddressModesEnum
   IndirectAbsoluteX,          // indirect absolute address + x    (a, X)
   IndirectAbsoluteZ,          // indirect absolute address        (a)
   RelativeAddress,            // relative value:                  r
+  RegisterA,                  // address of A register
   ImplementedCount,           // No address used
-  A,                          // No address used
   al,                         // No address used
   alX,                        // No address used
   b,                          // No address used
@@ -135,22 +136,22 @@ enum OperationEnum
 
 const uint8_t Cpu::TimingLookupTable[] = 
 {
-  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
 };
 
 const uint8_t Cpu::SizeLookupTable[] = 
@@ -175,22 +176,22 @@ const uint8_t Cpu::SizeLookupTable[] =
 
 const uint8_t Cpu::AddressModeLookupTable[] = 
 {
-  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    A,      None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          A,      None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,   None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,   None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,   None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
 };
 
 const uint8_t Cpu::OperationCodeLookupTable[] = 
@@ -230,6 +231,7 @@ const Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] =
   &Cpu::AddressIndirectAbsX,                // indirect absolute address + X    (a,x)
   &Cpu::AddressIndirectAbsZ,                // indirect absolute address        (a)
   &Cpu::AddressRelative,                    // relative value:                  r
+  &Cpu::AddressRegisterA,                   // register address:                A
 };
 
 const uint8_t Cpu::AddressModeSizeTable[] = 
@@ -249,6 +251,7 @@ const uint8_t Cpu::AddressModeSizeTable[] =
      1,   // indirect absolute address + x    (a, X)
      1,   // indirect absolute address        (a)
      1,   // relative value:                  r
+     0,   // register address:                A
 };
 
 const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] = 
@@ -347,25 +350,6 @@ const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] =
   &Cpu::iXCE,                          // eXchange Carry and Emulation flags
 };
 
-// {
-//   b,            IndirZeroX,        b,             dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  A,      None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   ZeroDirectZ,     ZeroDirectX,    ZeroDirectX,  None,   None,   aY,         A,      None,   AbsoluteZ,  AbsoluteX,   AbsoluteX,   alX,
-//   AbsoluteZ,    IndirZeroX,        al,            dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  A,      None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   ZeroDirectX,     ZeroDirectX,    ZeroDirectX,  None,   None,   aY,         A,      None,   AbsoluteX,  AbsoluteX,   AbsoluteX,   alX,
-//   None,         IndirZeroX,        None,          dS,      Sd,              ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  A,      None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   Sd,              ZeroDirectX,    ZeroDirectX,  None,   None,   aY,         None,   None,   al,         AbsoluteX,   AbsoluteX,   alX,
-//   None,         IndirZeroX,        rl,            dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  A,      None,   pap,        AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   ZeroDirectX,     ZeroDirectX,    ZeroDirectX,  None,   None,   aY,         None,   None,   paXp,       AbsoluteX,   AbsoluteX,   alX,
-//   r,            IndirZeroX,        rl,            dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  None,   None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   ZeroDirectX,     ZeroDirectX,    ZeroDirectY,  None,   None,   aY,         None,   None,   AbsoluteZ,  AbsoluteX,   AbsoluteX,   alX,
-//   Immediate,    IndirZeroX,        Immediate,     dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  None,   None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   ZeroDirectX,     ZeroDirectX,    ZeroDirectY,  None,   None,   aY,         None,   None,   AbsoluteX,  AbsoluteX,   AbsoluteY,   alX,
-//   Immediate,    IndirZeroX,        Immediate,     dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  None,   None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   ZeroDirectZ,     ZeroDirectX,    ZeroDirectX,  None,   None,   aY,         None,   None,   pap,        AbsoluteX,   AbsoluteX,   alX,
-//   Immediate,    IndirZeroX,        Immediate,     dS,      ZeroDirectZ,     ZeroDirectZ,    ZeroDirectZ,  None,   None,   Immediate,  None,   None,   AbsoluteZ,  AbsoluteZ,   AbsoluteZ,   al,
-//   r,            IndirZeroIndexY,   IndirZeroZ,    pdSpY,   AbsoluteZ,       ZeroDirectX,    ZeroDirectX,  None,   None,   aY,         None,   None,   paXp,       AbsoluteX,   AbsoluteX,   alX,
-// };
-
 Cpu::Cpu()
 :
   carryFlag(false),
@@ -384,30 +368,6 @@ Cpu::Cpu()
 {
   memset(memory, 0, sizeof(memory));
   memset(memory, 0xFF, 0x2000);
-
-////  for (int i = 0; i < 8*1024*headerData.ChrRomPages; i += 16)
-////  for (int i = 0; i < 16*1024*headerData.PrgRomPages; i += 16)
-////  for (int i = 512*49; i < 1024*16*headerData.PrgRomPages; i += 16)
-//  for (int i = 0x8000; i < 0xFFFF; i += 16)
-//  {
-//    for (int x = 0; x < 16; x++)
-//    {
-//      if (i + x == 0xe831 - 0x8000)
-//      {
-//        printf("\n here \n");
-//      }
-//      printf("%02x ", *(startAddr + x + i));
-////      printf("%02x ", ChrRomData[i+x]);
-//    }
-//    
-//    if (i != 0 && i % 1024 == 0)
-//      printf("\n");
-//
-//    printf("\n");
-//  }
-//  uint16_t PlayChoiceInstRomSize = (PlayChoice & data[7]) ? 8*1024 : 0;
-//  uint16_t PlayChoicePromSize = (PlayChoice & data[7]) ? 8*1024 : 0;
-
 }
 
 void Cpu::setPc(uint16_t counter)
@@ -590,6 +550,9 @@ void Cpu::doInstruction()
   // increment pc by required bytes: 1 for opcode + 0..2 for address mode
   pc += AddressModeSizeTable[addressModeId] + 1;
   
+  // randomize 0xFE
+  generateRandomVar();
+
   // call required function ID with address
   (this->*OperationCodeFunctionTable[operationCodeId])(address);
 }
@@ -712,14 +675,11 @@ uint8_t Cpu::popStack()
   return value;
 }
 
-// get absolute address from 8 bit pointer
-// uint8_t Cpu::getAbsoluteAddress()
-// {
-//   uint8_t value;
-//   value = *sp;
-//   sp++;
-//   return value;
-// }
+// randomize 0xFE
+void Cpu::generateRandomVar()
+{
+  *(startAddr + 0xFE) = (std::rand() % 0xFF);
+}
 
 // No address/value
 uint8_t *Cpu::AddressNone(uint8_t *instructionAddr)
@@ -850,7 +810,7 @@ uint8_t *Cpu::AddressIndirectZeroX(uint8_t *instructionAddr)
   // get the address given at this location on the zero page, in reverse byte order
   absoluteAddr = *(startAddr + (zeroPageAddr + 1)) & 0xFF;
   absoluteAddr <<= 8;
-  absoluteAddr = *(startAddr + zeroPageAddr) & 0xFF;
+  absoluteAddr |= *(startAddr + zeroPageAddr) & 0xFF;
 
   // return address of the dereferenced address
   tempAddr = startAddr + absoluteAddr;
@@ -868,7 +828,7 @@ uint8_t *Cpu::AddressIndirectZeroZ(uint8_t *instructionAddr)
   // get the address given at this location on the zero page, in reverse byte order
   absoluteAddr = *(startAddr + (zeroPageAddr + 1)) & 0xFF;
   absoluteAddr <<= 8;
-  absoluteAddr = *(startAddr + zeroPageAddr) & 0xFF;
+  absoluteAddr |= *(startAddr + zeroPageAddr) & 0xFF;
 
   // return address of the dereferenced address
   tempAddr = startAddr + absoluteAddr;
@@ -886,7 +846,7 @@ uint8_t *Cpu::AddressIndirectZeroIndexY(uint8_t *instructionAddr)
   // dereference value at given zero page address, read 2 bytes in reverse byte order
   absoluteAddr = *(startAddr + (zeroPageAddr + 1)) & 0xFF;
   absoluteAddr <<= 8;
-  absoluteAddr = *(startAddr + zeroPageAddr) & 0xFF;
+  absoluteAddr |= *(startAddr + zeroPageAddr) & 0xFF;
 
   // add index
   absoluteAddr += y;
@@ -912,7 +872,7 @@ uint8_t *Cpu::AddressIndirectAbsX(uint8_t *instructionAddr)
   // get absolute address by dereferencing directAddr
   absoluteAddr = *(startAddr + (directAddr + 1)) & 0xFF;
   absoluteAddr <<= 8;
-  absoluteAddr = *(startAddr + directAddr) & 0xFF;
+  absoluteAddr |= *(startAddr + directAddr) & 0xFF;
 
   // memory address of given absolute address + x register
   tempAddr = startAddr + absoluteAddr;
@@ -935,7 +895,7 @@ uint8_t *Cpu::AddressIndirectAbsZ(uint8_t *instructionAddr)
   // dereference direct address to get absolute address
   absoluteAddr = *(startAddr + (directAddr + 1)) & 0xFF;
   absoluteAddr <<= 8;
-  absoluteAddr = *(startAddr + directAddr) & 0xFF;
+  absoluteAddr |= *(startAddr + directAddr) & 0xFF;
 
   // memory address of given absolute address + x register
   tempAddr = startAddr + absoluteAddr;
@@ -967,6 +927,12 @@ uint8_t *Cpu::AddressRelative(uint8_t *instructionAddr)
   tempAddr = startAddr + absoluteAddr;
 
   return tempAddr;
+}
+
+// Return the address of CPU register A
+uint8_t *Cpu::AddressRegisterA(uint8_t *instructionAddr)
+{
+  return &a;
 }
 
 bool Cpu::testPageBoundary(uint8_t addressOffset)
@@ -1109,7 +1075,7 @@ void Cpu::iTCS(uint8_t *addr)
 // Jump to SubRoutine
 void Cpu::iJSR(uint8_t *addr)
 {
-  uint16_t returnAddressFull = getProgramCounter();
+  uint16_t returnAddressFull = getProgramCounter() - 1;
   uint8_t returnAddressLow = returnAddressFull & 0x00FF;
   uint8_t returnAddressHigh = (returnAddressFull & 0xFF00) >> 8;
 
@@ -1386,7 +1352,7 @@ void Cpu::iRTS(uint8_t *addr)
   returnAddressHigh = popStack();
   returnAddressFull = returnAddressLow | (returnAddressHigh << 8);
 
-  pc = returnAddressFull;
+  pc = returnAddressFull + 1;
 }
 
 

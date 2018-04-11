@@ -177,16 +177,17 @@ class Cpu
     //
 
     // utility functions
+    void generateRandomVar();                             // generate random value at 0x00FE
     bool testPageBoundary(uint8_t addressOffset);         // test if incrementing by offset will pass page boundary
     void incrementProgramCounter(uint16_t addressOffset); // increment by addressOffset
-    void setProgramCounter(uint16_t addr);              // set PC to memory[addr]
-    void setStackPointer(uint8_t addr);                 // set SP to memory[0x1FF - addr]
-    uint8_t getTwosComplement(uint8_t value);           // get signed representation of uint8 value converted to signed int type
-    uint8_t getOnesComplement(uint8_t value);           // used with sbc
-    int getSignedRepresentation(uint8_t value);         // convert uint8_t to int
-    int getSignedRepresentation(uint16_t value);        // convert uint16_t to int
-    void pushStack(uint8_t value);                      // push 8 bits onto stack and increment stack pointer
-    uint8_t popStack();                                 // pop 8 bits from stack and decrement stack pointer
+    void setProgramCounter(uint16_t addr);                // set PC to memory[addr]
+    void setStackPointer(uint8_t addr);                   // set SP to memory[0x1FF - addr]
+    uint8_t getTwosComplement(uint8_t value);             // get signed representation of uint8 value converted to signed int type
+    uint8_t getOnesComplement(uint8_t value);             // used with sbc
+    int getSignedRepresentation(uint8_t value);           // convert uint8_t to int
+    int getSignedRepresentation(uint16_t value);          // convert uint16_t to int
+    void pushStack(uint8_t value);                        // push 8 bits onto stack and increment stack pointer
+    uint8_t popStack();                                   // pop 8 bits from stack and decrement stack pointer
 
     // Operation code instructions
     void iBRK(uint8_t *addr);                           // BReaKpoint
@@ -302,5 +303,6 @@ class Cpu
     uint8_t *AddressIndirectAbsX(uint8_t *instructionAddr);           // Return the address: &memory[*(&memory[VAL + X]); (VAL is 2 bytes)
     uint8_t *AddressIndirectAbsZ(uint8_t *instructionAddr);           // Return the address: &memory[*(&memory[VAL]); (VAL is 2 bytes)
     uint8_t *AddressRelative(uint8_t *instructionAddr);               // Return the address: &memory[PC + signed(VAL)]; (VAL is 1 byte)
+    uint8_t *AddressRegisterA(uint8_t *instructionAddr);              // Return the address of CPU register A
 };
 #endif
