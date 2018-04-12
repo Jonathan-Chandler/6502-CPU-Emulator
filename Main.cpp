@@ -9,8 +9,11 @@
 
 int main()
 {
+  typedef std::chrono::high_resolution_clock Time;
+  using std::chrono::nanoseconds;
+  using std::chrono::duration_cast;
 //  uint8_t program[] = {0xa2, 0x00, 0xa0, 0x00, 0x8a, 0x99, 0x00, 0x02, 0x48, 0xe8, 0xc8, 0xc0, 0x10, 0xd0, 0xf5, 0x68, 0x99, 0x00, 0x02, 0xc8, 0xc0, 0x20, 0xd0, 0xf7};
-  uint8_t program[] = 
+  uint8_t snakeProgram[] = 
   {
     0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9, 0x02, 0x85, 
     0x02, 0xa9, 0x04, 0x85, 0x03, 0xa9, 0x11, 0x85, 0x10, 0xa9, 0x10, 0x85, 0x12, 0xa9, 0x0f, 0x85, 
@@ -35,7 +38,7 @@ int main()
   };
   uint8_t *mem;
   mem = (uint8_t *) malloc(0x10000);
-  memcpy(&mem[0x600], program, sizeof(program));
+  memcpy(&mem[0x600], snakeProgram, sizeof(snakeProgram));
 
 //  char file[] = "cpu_dummy_writes_oam.nes";
   Ppu nesPpu;
@@ -45,63 +48,50 @@ int main()
   uint8_t *chrData = &mem[0x0200];
   nesPpu.SetData(chrData);
   nesPpu.addPixels();
-////  nesCpu.loadRom(file);
-  std::string c = "x";
-  while (true)
-  {
-    nesCpu.printStatus();
-//    c = getchar();
-    nesCpu.doInstruction();
-    nesCpu.printZeroPage();
-    nesCpu.printStack();
 
-    nesPpu.updatePixels();
-    nesPpu.RenderAll();
-  }
-
-  /*
-  size_t frameCount = 0;
-  typedef std::chrono::high_resolution_clock Time;
-  using std::chrono::microseconds;
-  using std::chrono::duration_cast;
   auto currentTime = Time::now();
   bool mRequestExit = SDL_FALSE;
 
-  microseconds t(0);
-  microseconds dT(16667); // equals 1 second/60 frames -> microseconds
-  microseconds accumulator(0);
-  microseconds netAccumulator(0);
-  microseconds frameTimer(0);
+  // (1 sec / 1.789773 mhz) * (1 mhz / 1,000,000 hz) * (1,000,000,000 nanoseconds / 1 second) = nanoseconds / cycle
+  // 1.789773 MHz = 558.73007359 -> ~ 559
+  //
+  // (1 sec / 60 frames) * (1,000,000,000 nanoseconds / 1 second) = nanoseconds / frame
+  // 1,6666,666.6667 -> 1,666,667 ns / frame
+  //
+  nanoseconds frameRate(55873);  // nanoseconds/frame
+  nanoseconds cpuRate(55873);         // nanoseconds/instruction
+  nanoseconds cpuAccumulator(0);
+  nanoseconds frameAccumulator(0);
+  nanoseconds cycleTimer(0);
+  // int frameCount;
+  // int cpuCount;
 
   while (mRequestExit != SDL_TRUE) 
   {
     SDL_Event event;
     auto newTime = Time::now();
-    microseconds frameTime = duration_cast<microseconds>(newTime - currentTime);
-    frameCount += 1;
+    nanoseconds cycleTime = duration_cast<nanoseconds>(newTime - currentTime);
 
-    if (frameTimer < dT)
+    // display
+    if (frameAccumulator < frameRate)
     {
-      frameTimer += frameTime;
+      frameAccumulator += cycleTime;
     }
     else
     {
+      nesPpu.updatePixels();
       nesPpu.RenderAll();
-      frameTimer -= dT;
-      frameCount = 0;
+      frameAccumulator -= frameRate;
+//      frameCount++;
+//      printf("frame: %d\n", frameCount);
     }
-
-    currentTime = newTime;
-
-    accumulator += frameTime;
-    netAccumulator += frameTime;
 
     while (SDL_PollEvent(&event)) 
     {
       if (event.type == SDL_KEYDOWN
           || event.type == SDL_KEYUP) 
       {
-        //PlayerAction Action;
+        nesCpu.handlePlayerInput(&event);
       }
 
       if (event.type == SDL_QUIT) 
@@ -110,11 +100,18 @@ int main()
       }
     }
 
-    while (accumulator >= dT)
+    // cpu catch up
+    while (cpuAccumulator >= cpuRate)
     {
-      t += dT;
-      accumulator -= dT;
+      nesCpu.doInstruction();
+      cpuAccumulator -= cpuRate;
+//      cpuCount++;
+//      printf("cpuframe: %d\n", cpuCount);
     }
+
+    currentTime = newTime;
+    cpuAccumulator += cycleTime;
   }
-  */
+
+  free(mem);
 }

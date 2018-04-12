@@ -1,6 +1,7 @@
 #ifndef CPU_HPP
 #define CPU_HPP
 #include <iostream>
+#include "SDL2/SDL.h" 
 
 class Cpu
 {
@@ -84,6 +85,7 @@ class Cpu
     void printStack();
     void printZeroPage();
     void loadRom(char *filename);
+    void handlePlayerInput(SDL_Event *event);
 
   private:
     typedef uint8_t* (Cpu::*AddressMode_T)(uint8_t *instructionAddr);

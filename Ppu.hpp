@@ -43,6 +43,7 @@ class Ppu
     void AddSprites();
     void addPixels();
     void updatePixels();
+    void deletePixels();
       
   private:
     static const colors rgb[];

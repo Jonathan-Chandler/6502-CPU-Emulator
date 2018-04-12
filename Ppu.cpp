@@ -42,6 +42,8 @@ Ppu::Ppu()
 
 Ppu::~Ppu()
 {
+  deletePixels();
+
   if (pRenderer)
   {
     SDL_DestroyRenderer(pRenderer);
@@ -87,6 +89,18 @@ void Ppu::addPixels()
       pRgb.push_back(rgbValues);
       pSprites.push_back(sprite);
     }
+  }
+}
+
+void Ppu::deletePixels()
+{
+  SDL_Rect *sprite = NULL;
+
+  while (!pSprites.empty())
+  {
+    sprite = pSprites.back();
+    pSprites.pop_back();
+    delete sprite;
   }
 }
 
