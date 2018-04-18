@@ -4,13 +4,14 @@
 #include <iostream>
 #include <vector>
 
+// TODO: emulate NES PPU
+// uint8_t streamA;
+// uint8_t streamB;
+
 typedef uint8_t data[16];
 typedef uint8_t colors[3];
 typedef uint8_t sprite[8][8];
 typedef uint8_t sprite2[4][4];
-
-// uint8_t streamA;
-// uint8_t streamB;
 
 // streamA = data[0];
 // streamB = data[8];

@@ -3,12 +3,9 @@
 #include <string.h>
 #include <cstdlib>
 
-#define EIGHT_BIT_MASK  0xFF
-#define EIGHT_BIT_SHIFT 8
-
 enum AddressModesEnum
 {
-// name                             desc                          symbol
+                              //    description                   symbol
   None,                       // No address/value
   Immediate,                  // immediate value:                 #$
   DirectZeroX,                // direct zero addr + X:            d, X
@@ -39,7 +36,7 @@ enum AddressModesEnum
 
 enum OperationEnum
 {
-// name                             desc                  
+                                //  description
   BRK,                          // BReaKpoint
   ORA,                          // bitwise OR Accumulator
   COP,                          // COProcessor
@@ -134,48 +131,30 @@ enum OperationEnum
   XCE,                          // eXchange Carry and Emulation flags
 };                            
 
-// debug
+// TOOD: break if invalid instruction executed
 #define KIL 0xFF
 
 // high 4 bits for cycles to add if page is crossed, lower 4 bits are always added
 const uint8_t Cpu::TimingLookupTable[] = 
 {
-//        x0     x1      x2       x3     x4      x5     x6     x7     x8       x9       xA       xB       xC       xD       xE      xF
-/*0x*/    7,     6,      KIL,     8,     3,      3,     5,     5,     3,       2,       2,       2,       4,       4,       6,      6,
-/*1x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
-/*2x*/    6,     6,      KIL,     8,     3,      3,     5,     5,     4,       2,       2,       2,       4,       4,       6,      6,
-/*3x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
-/*4x*/    6,     6,      KIL,     8,     3,      3,     5,     5,     3,       2,       2,       2,       3,       4,       6,      6,
-/*5x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
-/*6x*/    6,     6,      KIL,     8,     3,      3,     5,     5,     4,       2,       2,       2,       5,       4,       6,      6,
-/*7x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
-/*8x*/    2,     6,      2,       6,     3,      3,     3,     3,     2,       2,       2,       2,       4,       4,       4,      4,
-/*9x*/    12,    6,      KIL,     6,     4,      4,     4,     4,     2,       5,       2,       5,       5,       5,       5,      5,
-/*Ax*/    2,     6,      2,       6,     3,      3,     3,     3,     2,       2,       2,       2,       4,       4,       4,      4,
-/*Bx*/    12,    15,     KIL,     15,    4,      4,     4,     4,     2,       14,      2,       14,      14,      14,      14,     14,
-/*Cx*/    2,     6,      2,       8,     3,      3,     5,     5,     2,       2,       2,       2,       4,       4,       6,      6,
-/*Dx*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
-/*Ex*/    2,     6,      2,       8,     3,      3,     5,     5,     2,       2,       2,       2,       4,       4,       6,      6,
-/*Fx*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
+  //        x0     x1      x2       x3     x4      x5     x6     x7     x8       x9       xA       xB       xC       xD       xE      xF
+  /*0x*/    7,     6,      KIL,     8,     3,      3,     5,     5,     3,       2,       2,       2,       4,       4,       6,      6,
+  /*1x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
+  /*2x*/    6,     6,      KIL,     8,     3,      3,     5,     5,     4,       2,       2,       2,       4,       4,       6,      6,
+  /*3x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
+  /*4x*/    6,     6,      KIL,     8,     3,      3,     5,     5,     3,       2,       2,       2,       3,       4,       6,      6,
+  /*5x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
+  /*6x*/    6,     6,      KIL,     8,     3,      3,     5,     5,     4,       2,       2,       2,       5,       4,       6,      6,
+  /*7x*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
+  /*8x*/    2,     6,      2,       6,     3,      3,     3,     3,     2,       2,       2,       2,       4,       4,       4,      4,
+  /*9x*/    12,    6,      KIL,     6,     4,      4,     4,     4,     2,       5,       2,       5,       5,       5,       5,      5,
+  /*Ax*/    2,     6,      2,       6,     3,      3,     3,     3,     2,       2,       2,       2,       4,       4,       4,      4,
+  /*Bx*/    12,    15,     KIL,     15,    4,      4,     4,     4,     2,       14,      2,       14,      14,      14,      14,     14,
+  /*Cx*/    2,     6,      2,       8,     3,      3,     5,     5,     2,       2,       2,       2,       4,       4,       6,      6,
+  /*Dx*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
+  /*Ex*/    2,     6,      2,       8,     3,      3,     5,     5,     2,       2,       2,       2,       4,       4,       6,      6,
+  /*Fx*/    12,    15,     KIL,     8,     4,      4,     6,     6,     2,       14,      2,       7,       14,      14,      7,      7,
 };
-
-////       x0              x1              x2              x3          x4          x5             x6            x7           x8      x9      xA      xB      xC      xD      xE      xF
-///*0x*/   BRK 7           ORA izx 6       KIL           SLO izx 8     NOP zp 3    ORA zp 3     ASL zp 5      SLO zp 5      PHP 3   ORA imm 2   ASL 2   ANC imm 2   NOP abs 4   ORA abs 4   ASL abs 6   SLO abs 6
-///*1x*/   BPL rel 2*      ORA izy 5*      KIL           SLO izy 8     NOP zpx 4   ORA zpx 4    ASL zpx 6     SLO zpx 6     CLC 2   ORA aby 4*  NOP 2   SLO aby 7   NOP abx 4*  ORA abx 4*  ASL abx 7   SLO abx 7
-///*2x*/   JSR abs 6       AND izx 6       KIL           RLA izx 8     BIT zp 3    AND zp 3     ROL zp 5      RLA zp 5      PLP 4   AND imm 2   ROL 2   ANC imm 2   BIT abs 4   AND abs 4   ROL abs 6   RLA abs 6
-///*3x*/   BMI rel 2*      AND izy 5*      KIL           RLA izy 8     NOP zpx 4   AND zpx 4    ROL zpx 6     RLA zpx 6     SEC 2   AND aby 4*  NOP 2   RLA aby 7   NOP abx 4*  AND abx 4*  ROL abx 7   RLA abx 7
-///*4x*/   RTI 6           EOR izx 6       KIL           SRE izx 8     NOP zp 3    EOR zp 3     LSR zp 5      SRE zp 5      PHA 3   EOR imm 2   LSR 2   ALR imm 2   JMP abs 3   EOR abs 4   LSR abs 6   SRE abs 6
-///*5x*/   BVC rel 2*      EOR izy 5*      KIL           SRE izy 8     NOP zpx 4   EOR zpx 4    LSR zpx 6     SRE zpx 6     CLI 2   EOR aby 4*  NOP 2   SRE aby 7   NOP abx 4*  EOR abx 4*  LSR abx 7   SRE abx 7
-///*6x*/   RTS 6           ADC izx 6       KIL           RRA izx 8     NOP zp 3    ADC zp 3     ROR zp 5      RRA zp 5      PLA 4   ADC imm 2   ROR 2   ARR imm 2   JMP ind 5   ADC abs 4   ROR abs 6   RRA abs 6
-///*7x*/   BVS rel 2*      ADC izy 5*      KIL           RRA izy 8     NOP zpx 4   ADC zpx 4    ROR zpx 6     RRA zpx 6     SEI 2   ADC aby 4*  NOP 2   RRA aby 7   NOP abx 4*  ADC abx 4*  ROR abx 7   RRA abx 7
-///*8x*/   NOP imm 2       STA izx 6       NOP imm 2     SAX izx 6     STY zp 3    STA zp 3     STX zp 3      SAX zp 3      DEY 2   NOP imm 2   TXA 2   XAA imm 2   STY abs 4   STA abs 4   STX abs 4   SAX abs 4
-///*9x*/   BCC rel 2*      STA izy 6       KIL           AHX izy 6     STY zpx 4   STA zpx 4    STX zpy 4     SAX zpy 4     TYA 2   STA aby 5   TXS 2   TAS aby 5   SHY abx 5   STA abx 5   SHX aby 5   AHX aby 5
-///*Ax*/   LDY imm 2       LDA izx 6       LDX imm 2     LAX izx 6     LDY zp 3    LDA zp 3     LDX zp 3      LAX zp 3      TAY 2   LDA imm 2   TAX 2   LAX imm 2   LDY abs 4   LDA abs 4   LDX abs 4   LAX abs 4
-///*Bx*/   BCS rel 2*      LDA izy 5*      KIL           LAX izy 5*    LDY zpx 4   LDA zpx 4    LDX zpy 4     LAX zpy 4     CLV 2   LDA aby 4*  TSX 2   LAS aby 4*  LDY abx 4*  LDA abx 4*  LDX aby 4*  LAX aby 4*
-///*Cx*/   CPY imm 2       CMP izx 6       NOP imm 2     DCP izx 8     CPY zp 3    CMP zp 3     DEC zp 5      DCP zp 5      INY 2   CMP imm 2   DEX 2   AXS imm 2   CPY abs 4   CMP abs 4   DEC abs 6   DCP abs 6
-///*Dx*/   BNE rel 2*      CMP izy 5*      KIL           DCP izy 8     NOP zpx 4   CMP zpx 4    DEC zpx 6     DCP zpx 6     CLD 2   CMP aby 4*  NOP 2   DCP aby 7   NOP abx 4*  CMP abx 4*  DEC abx 7   DCP abx 7
-///*Ex*/   CPX imm 2       SBC izx 6       NOP imm 2     ISC izx 8     CPX zp 3    SBC zp 3     INC zp 5      ISC zp 5      INX 2   SBC imm 2   NOP 2   SBC imm 2   CPX abs 4   SBC abs 4   INC abs 6   ISC abs 6
-///*Fx*/   BEQ rel 2*      SBC izy 5*      KIL           ISC izy 8     NOP zpx 4   SBC zpx 4    INC zpx 6     ISC zpx 6     SED 2   SBC aby 4*  NOP 2   ISC aby 7   NOP abx 4*  SBC abx 4*  INC abx 7   ISC abx 7
 
 const uint8_t Cpu::SizeLookupTable[] = 
 {
@@ -240,7 +219,7 @@ const uint8_t Cpu::OperationCodeLookupTable[] =
 
 const Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] = 
 {
-//        name                                    desc                          symbol
+                                            //    description                   symbol
   &Cpu::AddressNone,                        // No address/value
   &Cpu::AddressImmediate,                   // immediate value:                 #$
   &Cpu::AddressDirectZeroX,                 // direct zero addr + X:            d, X
@@ -260,7 +239,7 @@ const Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] =
 
 const uint8_t Cpu::AddressModeSizeTable[] = 
 {
-// value         desc                          symbol
+          //    description                   symbol
      0,   // No address/value
      1,   // immediate value:                 #$
      1,   // direct zero addr + X:            d, X
@@ -376,12 +355,16 @@ const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] =
 
 Cpu::Cpu()
 :
-  carryFlag(false),
-  zeroFlag(false),
-  interruptFlag(false),
-  decimalFlag(false),
-  overflowFlag(false),
   negativeFlag(false),
+  overflowFlag(false),
+  sHigh(true),
+  sLow(true),
+  decimalFlag(false),
+  interruptFlag(false),
+  zeroFlag(false),
+  carryFlag(false),
+  breakFlag(false),
+  crossedPage(false),
   cycles(0),
   startAddr(memory),
   pc(0),
@@ -399,18 +382,7 @@ void Cpu::setPc(uint16_t counter)
   pc = counter;
 }
 
-void Cpu::loadRom(char *filename)
-{
-  Memory nesMem;
-  nesMem.loadRom(filename);
-  startAddr = nesMem.getMemory();
-  //  printf("pc sets: %x%x\n", (uint8_t)*(startAddr + 0xFFFD) & 0xFF, (uint8_t)*(startAddr + 0xFFFC) & 0xFF);
-  pc = (uint8_t)*(startAddr + 0xFFFD) & 0xFF;
-  pc <<= 8;
-  pc |= (uint8_t)*(startAddr + 0xFFFC) & 0xFF;
-  printf("pc sets: %x\n",pc);
-}
-
+// TODO (match NES reset values): Reset untested
 void Cpu::reset()
 {
   memset(memory, 0, sizeof(memory));
@@ -426,10 +398,9 @@ void Cpu::reset()
   // pc = &memory[0x34];
   sp = 0xFF; 
 
-  // On reset, reference address given from &memory[(memory[0xFFFD] << 8) | (memory[0xFFFC])]; 
-//  uint16_t tempAddr = ((memory[0xFFFD] & EIGHT_BIT_MASK) << EIGHT_BIT_SHIFT);
-//  tempAddr |= (memory[0xFFFC] & EIGHT_BIT_MASK);
-//  pc = tempAddr;
+  // On reset, reference address given from reset vector memory[0xFFFD] << 8) | memory[0xFFFC]; 
+  // uint16_t tempAddr = ((memory[0xFFFD] & EIGHT_BIT_MASK) << EIGHT_BIT_SHIFT);
+  // pc |= (memory[0xFFFC] & EIGHT_BIT_MASK);
   pc = 0;
 
   a = 0;
@@ -440,15 +411,15 @@ void Cpu::reset()
 
 void Cpu::printStatus()
 {
+  printf("nf: %x\n", negativeFlag);
+  printf("of: %x\n", overflowFlag);
+  printf("df: %x\n", decimalFlag);
+  printf("if: %x\n", interruptFlag);
+  printf("zf: %x\n", zeroFlag);
+  printf("cf: %x\n", carryFlag);
   printf("A: %x\n", a);
   printf("X: %x\n", x);
   printf("Y: %x\n", y);
-  printf("cf: %x\n", carryFlag);
-  printf("zf: %x\n", zeroFlag);
-  printf("if: %x\n", interruptFlag);
-  printf("df: %x\n", decimalFlag);
-  printf("of: %x\n", overflowFlag);
-  printf("nf: %x\n", negativeFlag);
   printf("sp: %x\n", sp);
   printf("pc: %x\n", pc);
   printf("*pc+0: %x\n", (uint8_t)*(startAddr + pc) & 0xFF);
@@ -520,6 +491,7 @@ void Cpu::setMemory(uint8_t *memoryAddr)
   startAddr = memoryAddr;
 }
 
+// TODO (Move controls out of CPU): Handle with new controls class, allow alternate controls
 void Cpu::handlePlayerInput(SDL_Event *event)
 {
   // SDL event is upper case, add 0x20 to change to lower case

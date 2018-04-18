@@ -75,13 +75,11 @@ void Memory::loadRom(char *file)
   uint8_t trainerData[512];
 
   size_t result = fread(&headerData, sizeof(headerData), 1, infile);
-  printf("read 0x%lx bytes\n", sizeof(headerData)*result);
-  printf("RomType: 0x%x\n", headerData.RomType);
-  printf("PrgRomPages: 0x%x\n", headerData.PrgRomPages);
-  printf("ChrRomPages: 0x%x\n", headerData.ChrRomPages);
-  printf("FlagsByte6: 0x%x\n", headerData.FlagsByte6);
-  printf("FlagsByte7: 0x%x\n", headerData.FlagsByte7);
-  printf("RamPages: 0x%x\n", headerData.RamPages);
+  if (result != 1)
+  {
+    std::cout << "fail to read header" << std::endl;
+    return;
+  }
 
   if ((headerData.FlagsByte6 & TrainerPresent) == 1)
   {
@@ -92,9 +90,7 @@ void Memory::loadRom(char *file)
   if (headerData.PrgRomPages == 0)
     headerData.PrgRomPages = 1;
   PrgRomData = (uint8_t *) malloc(16384*headerData.PrgRomPages);
-//  fread(PrgRomData, (16384*headerData.PrgRomPages), 1, infile);
   fread(&localMem[0x8000], (16384*headerData.PrgRomPages), 1, infile);
-  //  ffff - 0x8000 = 0x7FFF = 32767
 
   if (headerData.ChrRomPages == 0)
   {
@@ -102,42 +98,6 @@ void Memory::loadRom(char *file)
   }
   ChrRomData = (uint8_t *) malloc(1024*8*headerData.ChrRomPages);
   result = fread(ChrRomData, (1024*8*headerData.ChrRomPages), 1, infile);
-
-  std::cout << "read:" << result << std::endl;
-
-  // prg begin = 0x6210 = 25104
-  // end = 40975 = 0xA00F
-  // 32 = 0x20
-  // 1024 = 0x400
-  // 32768 = 0x8000
-  // 6210 -> 
-  // 400a -> 400f
-  // 94 C1 00 C0 9D C1
-  printf("prgrromsize: %d kb\n", headerData.PrgRomPages*16);
-  printf("chrromsize: %d kb\n", headerData.ChrRomPages*8);
-
-//  for (int i = 0; i < 8*1024*headerData.ChrRomPages; i += 16)
-//  for (int i = 0; i < 16*1024*headerData.PrgRomPages; i += 16)
-//  for (int i = 512*49; i < 1024*16*headerData.PrgRomPages; i += 16)
-//  for (int i = 0; i < 16384*headerData.PrgRomPages; i += 16)
-//  {
-//    for (int x = 0; x < 16; x++)
-//    {
-//      if (i + x == 0xe831 - 0x8000)
-//      {
-//        printf("\n here \n");
-//      }
-//      printf("%02x ", PrgRomData[i+x]);
-////      printf("%02x ", ChrRomData[i+x]);
-//    }
-//    
-//    if (i != 0 && i % 1024 == 0)
-//      printf("\n");
-//
-//    printf("\n");
-//  }
-//  uint16_t PlayChoiceInstRomSize = (PlayChoice & data[7]) ? 8*1024 : 0;
-//  uint16_t PlayChoicePromSize = (PlayChoice & data[7]) ? 8*1024 : 0;
 
   fclose(infile);
 }

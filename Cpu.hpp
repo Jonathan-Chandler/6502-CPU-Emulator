@@ -84,7 +84,6 @@ class Cpu
     void printStatus();
     void printStack();
     void printZeroPage();
-    void loadRom(char *filename);
     void handlePlayerInput(SDL_Event *event);
 
   private:
@@ -101,16 +100,16 @@ class Cpu
     static const uint8_t TimingLookupTable[];
 
     // Bits 7 -> 0:
-    // Flags NVss DIZC (also SVss DBZC)
+    // Flags NVss DIZC (AKA SVss DBZC)
     //
-    bool carryFlag;     // C : 1 if last addition or shift resulted in a carry, or if last subtraction resulted in no borrow
-    bool zeroFlag;      // Z : 1 if last operation resulted in a 0 value
-    bool interruptFlag; // I : 1 to disable maskable interrupts
-    bool decimalFlag;   // D : 1 to enable decimal mode
-    bool overflowFlag;  // V : 1 if last ADC or SBC resulted in signed overflow, or D6 from last BIT
     bool negativeFlag;  // N : Set to bit 7 of last operation
+    bool overflowFlag;  // V : 1 if last ADC or SBC resulted in signed overflow, or D6 from last BIT
     bool sHigh;         // sx: No effect, used by stack copy
     bool sLow;          // xs: No effect, used by stack copy
+    bool decimalFlag;   // D : 1 to enable decimal mode
+    bool interruptFlag; // I : 1 to disable maskable interrupts
+    bool zeroFlag;      // Z : 1 if last operation resulted in a 0 value
+    bool carryFlag;     // C : 1 if last addition or shift resulted in a carry, or if last subtraction resulted in no borrow
 
     bool breakFlag;     // use internally to signal BREAK
     bool crossedPage;   // signal 255-byte page boundary was crossed
@@ -118,9 +117,7 @@ class Cpu
 
     uint8_t *startAddr; // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
     uint16_t pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
-
-//    uint8_t *pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
-//                        // On reset, reference address given from &memory[(memory[0xFFFD] << 4) | (memory[0xFFFC])]; 
+                        // On reset, reference address given from &memory[(memory[0xFFFD] << 4) | (memory[0xFFFC])]; 
     uint8_t sp;         // Stack Pointer: references &memory[(0x100 -> 0x1FF)]
                         // SP increments high to low: 0x1FF -> 0x100 
     uint8_t a;          // Accumulator register
@@ -162,21 +159,8 @@ class Cpu
     // $0200-$02FF  256 bytes   Data to be copied to OAM during next vertical blank
     // $0300-$03FF  256 bytes   Variables used by sound player, and possibly other variables
     // $0400-$07FF  1024 bytes  Arrays and less-often-accessed global variables
-    //
-#define MEMORY_SIZE 0x10000
-    uint8_t memory[0x10000]; // 0 -> 0xFFFF
 
-    // 0x0000 -> 0x000F - header
-    // 0x0010 -> 0x0D70 - blank
-    // 0x0D70 -> 0x2008 - ?
-    // 0x2009 -> 0x3F6F - blank
-    // 0x3F60 -> 0x3FCF - ?
-    // 0x3FD0 -> 0x4009 - blank
-    // 0x400A -> 0x4CBD - ?
-    // 0x4CBE -> 0x4D0F - blank
-    // 0x4D10 -> 0xaaaa - ?
-    // D60
-    //
+    uint8_t memory[0x10000]; // 0 -> 0xFFFF
 
     // utility functions
     void generateRandomVar();                             // generate random value at 0x00FE
