@@ -4,7 +4,6 @@
 #include "Ppu.hpp"
 #include "Cpu.hpp"
 #include "Memory.hpp"
-#include "CpuTest.tcc"
 #include <string.h>
 
 int main()
@@ -12,7 +11,6 @@ int main()
   typedef std::chrono::high_resolution_clock Time;
   using std::chrono::nanoseconds;
   using std::chrono::duration_cast;
-//  uint8_t program[] = {0xa2, 0x00, 0xa0, 0x00, 0x8a, 0x99, 0x00, 0x02, 0x48, 0xe8, 0xc8, 0xc0, 0x10, 0xd0, 0xf5, 0x68, 0x99, 0x00, 0x02, 0xc8, 0xc0, 0x20, 0xd0, 0xf7};
   uint8_t snakeProgram[] = 
   {
     0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9, 0x02, 0x85, 
@@ -58,13 +56,11 @@ int main()
   // (1 sec / 60 frames) * (1,000,000,000 nanoseconds / 1 second) = nanoseconds / frame
   // 1,6666,666.6667 -> 1,666,667 ns / frame
   //
-  nanoseconds frameRate(55873);  // nanoseconds/frame
+  nanoseconds frameRate(55873);       // nanoseconds/frame
   nanoseconds cpuRate(55873);         // nanoseconds/instruction
   nanoseconds cpuAccumulator(0);
   nanoseconds frameAccumulator(0);
   nanoseconds cycleTimer(0);
-  // int frameCount;
-  // int cpuCount;
 
   while (mRequestExit != SDL_TRUE) 
   {
@@ -82,8 +78,6 @@ int main()
       nesPpu.updatePixels();
       nesPpu.RenderAll();
       frameAccumulator -= frameRate;
-//      frameCount++;
-//      printf("frame: %d\n", frameCount);
     }
 
     while (SDL_PollEvent(&event)) 
@@ -105,8 +99,6 @@ int main()
     {
       nesCpu.doInstruction();
       cpuAccumulator -= cpuRate;
-//      cpuCount++;
-//      printf("cpuframe: %d\n", cpuCount);
     }
 
     currentTime = newTime;
