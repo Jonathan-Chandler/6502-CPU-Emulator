@@ -11,6 +11,65 @@
 
 #define INES_ROM_HEADER = {'N','E','S',1A};    // ines always equals 'N', 'E', 'S', 1A
 
+const uint8_t Memory::AddressModeSizeTable[] = 
+{
+          //    description                   symbol
+     0,   // No address/value
+     1,   // immediate value:                 #$
+     1,   // direct zero addr + X:            d, X
+     1,   // direct zero addr + Y:            d, Y
+     1,   // direct zero addr:                d
+     2,   // absolute address + X:            a, X
+     2,   // absolute address + Y:            a, Y
+     2,   // absolute address:                a
+     1,   // indirect zero page address + X   (d, X)
+     1,   // indirect zero page address       (d)
+     1,   // indirect zero page ddress[Y]     (d), Y
+     1,   // indirect absolute address + x    (a, X)
+     1,   // indirect absolute address        (a)
+     1,   // relative value:                  r
+     0,   // register address:                A
+};
+
+const Memory::AddressMode_T Memory::AddressModeFunctionTable[] = 
+{
+  &Memory::AddressNone,                        // No address/value
+  &Memory::AddressImmediate,                   // immediate value:                 #$
+  &Memory::AddressDirectZeroX,                 // direct zero addr + X:            d, X
+  &Memory::AddressDirectZeroY,                 // direct zero addr + Y:            d, Y
+  &Memory::AddressDirectZeroZ,                 // direct zero addr:                d
+  &Memory::AddressDirectAbsX,                  // absolute address + X:            a, X
+  &Memory::AddressDirectAbsY,                  // absolute address + Y:            a, Y
+  &Memory::AddressDirectAbsZ,                  // absolute address:                a
+  &Memory::AddressIndirectZeroX,               // indirect zero page address + X   (d, X)
+  &Memory::AddressIndirectZeroZ,               // indirect zero page address       (d)
+  &Memory::AddressIndirectZeroIndexY,          // indirect zero page ddress[Y]     (d), Y
+  &Memory::AddressIndirectAbsX,                // indirect absolute address + X    (a,x)
+  &Memory::AddressIndirectAbsZ,                // indirect absolute address        (a)
+  &Memory::AddressRelative,                    // relative value:                  r
+  &Memory::AddressRegisterA,                   // register address:                A
+};
+
+const uint8_t Memory::AddressModeLookupTable[] = 
+{
+  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
+  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
+};
+
 struct InesHeader_T
 {
   uint32_t  RomType;                      // ines always equals 'N', 'E', 'S', 1A
@@ -36,10 +95,13 @@ struct InesHeader_T
 	uint8_t   Unused[7];                    // unused padding
 };
 
+// 5b
+// u/d/l/r/sel/start/a/b = 8
+// 
 Memory::Memory()
 {
   memset(cpu_mem, 0, sizeof(cpu_mem));
-  memset(cpu_mem, 0xFF, 0x2000);
+  memset(cpu_mem, 0xFF, 0x100);
 }
 
 // byte 8 holds size of PRG RAM in 8 KB units (Value 0 infers 8 KB)
@@ -103,14 +165,38 @@ void Memory::loadRom(char *file)
   fclose(infile);
 }
 
-uint8_t *Memory::getChrRomData()
+uint8_t *Memory::get_chr_rom_data()
 {
-  return ChrRomData;
+//  memset(&cpu_mem[0x200], 0, 1024);
+
+  return get_memory(0x200);
 }
 
-uint8_t *Memory::getMemory()
+void Memory::set_cpu(class Cpu *cpu)
+{
+  cpu_callback = cpu;
+}
+
+uint8_t *Memory::get_memory(uint16_t addr)
+{
+  return &cpu_mem[addr];
+}
+
+uint8_t *Memory::get_memory()
 {
   return cpu_mem;
+}
+
+void Memory::set_memory(uint16_t offset, uint8_t *source, uint16_t size)
+{
+  // overflow
+  if ((uint32_t)(offset + size) > 0xFFFF)
+  {
+    printf("overflow\n");
+    return;
+  }
+
+  memcpy(&cpu_mem[offset], source, size);
 }
 
 // No address/value

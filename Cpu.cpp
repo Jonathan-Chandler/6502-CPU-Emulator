@@ -2,37 +2,6 @@
 #include <string.h>
 #include <cstdlib>
 
-enum AddressModesEnum
-{
-                              //    description                   symbol
-  None,                       // No address/value
-  Immediate,                  // immediate value:                 #$
-  DirectZeroX,                // direct zero addr + X:            d, X
-  DirectZeroY,                // direct zero addr + Y:            d, Y
-  DirectZeroZ,                // direct zero addr:                d
-  DirectAbsoluteX,            // absolute address + X:            a, X
-  DirectAbsoluteY,            // absolute address + Y:            a, Y
-  DirectAbsoluteZ,            // absolute address:                a
-  IndirectZeroX,              // indirect zero page address + X   (d, X)
-  IndirectZeroZ,              // indirect zero page address       (d)
-  IndirectZeroIndexY,         // indirect zero page ddress[Y]     (d), Y
-  IndirectAbsoluteX,          // indirect absolute address + x    (a, X)
-  IndirectAbsoluteZ,          // indirect absolute address        (a)
-  RelativeAddress,            // relative value:                  r
-  RegisterA,                  // address of A register
-  ImplementedCount,           // No address used
-  al,                         // No address used
-  alX,                        // No address used
-  b,                          // No address used
-  rl,                         // No address used
-  pdSpY,                      // No address used
-  dS,                         // No address used
-  sd,                         // No address used
-  bdb,                        // No address used
-  bdby,                       // No address used
-  AddressModeCount,           // No address used
-};                            
-
 enum OperationEnum
 {
                                 //  description
@@ -175,26 +144,6 @@ const uint8_t Cpu::SizeLookupTable[] =
   BEQ,  SBC,  SBC,  SBC,  PEA,  SBC,  INC,  SBC,  SED,  SBC,  PLX,  XCE,  JSR,  SBC,  INC,  SBC,
 };
 
-const uint8_t Cpu::AddressModeLookupTable[] = 
-{
-  b,                IndirectZeroX,        b,                dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  DirectAbsoluteZ,  IndirectZeroX,        al,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    RegisterA,    None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  None,             IndirectZeroX,        None,             dS,       sd,               DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    sd,               DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   al,                 DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  None,             IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          RegisterA,    None,   IndirectAbsoluteZ,  DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  RelativeAddress,  IndirectZeroX,        rl,               dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteZ,    DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroX,      DirectZeroX,  DirectZeroY,    bdby,   None,   DirectAbsoluteY,    None,         None,   DirectAbsoluteX,    DirectAbsoluteX,  DirectAbsoluteY,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectZeroZ,      DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteZ,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-  Immediate,        IndirectZeroX,        Immediate,        dS,       DirectZeroZ,      DirectZeroZ,  DirectZeroZ,    bdb,    None,   Immediate,          None,         None,   DirectAbsoluteZ,    DirectAbsoluteZ,  DirectAbsoluteZ,  al,
-  RelativeAddress,  IndirectZeroIndexY,   IndirectZeroZ,    pdSpY,    DirectAbsoluteZ,  DirectZeroX,  DirectZeroX,    bdby,   None,   DirectAbsoluteY,    None,         None,   IndirectAbsoluteX,  DirectAbsoluteX,  DirectAbsoluteX,  alX,
-};
-
 const uint8_t Cpu::OperationCodeLookupTable[] = 
 {
 // x0    x1    x2    x3    x4    x5    x6    x7    x8    x9    xA    xB    xC    xD    xE    xF
@@ -214,45 +163,6 @@ const uint8_t Cpu::OperationCodeLookupTable[] =
   BNE,  CMP,  CMP,  CMP,  PEI,  CMP,  DEC,  CMP,  CLD,  CMP,  PHX,  STP,  JML,  CMP,  DEC,  CMP,  // Dx
   CPX,  SBC,  SEP,  SBC,  CPX,  SBC,  INC,  SBC,  INX,  SBC,  NOP,  XBA,  CPX,  SBC,  INC,  SBC,  // Ex
   BEQ,  SBC,  SBC,  SBC,  PEA,  SBC,  INC,  SBC,  SED,  SBC,  PLX,  XCE,  JSR,  SBC,  INC,  SBC,  // Fx
-};
-
-Cpu::AddressMode_T Cpu::AddressModeFunctionTable[] = 
-{
-  &memory->AddressNone,                        // No address/value
-  &memory->AddressImmediate,                   // immediate value:                 #$
-  &memory->AddressDirectZeroX,                 // direct zero addr + X:            d, X
-  &memory->AddressDirectZeroY,                 // direct zero addr + Y:            d, Y
-  &memory->AddressDirectZeroZ,                 // direct zero addr:                d
-  &memory->AddressDirectAbsX,                  // absolute address + X:            a, X
-  &memory->AddressDirectAbsY,                  // absolute address + Y:            a, Y
-  &memory->AddressDirectAbsZ,                  // absolute address:                a
-  &memory->AddressIndirectZeroX,               // indirect zero page address + X   (d, X)
-  &memory->AddressIndirectZeroZ,               // indirect zero page address       (d)
-  &memory->AddressIndirectZeroIndexY,          // indirect zero page ddress[Y]     (d), Y
-  &memory->AddressIndirectAbsX,                // indirect absolute address + X    (a,x)
-  &memory->AddressIndirectAbsZ,                // indirect absolute address        (a)
-  &memory->AddressRelative,                    // relative value:                  r
-  &memory->AddressRegisterA,                   // register address:                A
-};
-
-const uint8_t Cpu::AddressModeSizeTable[] = 
-{
-          //    description                   symbol
-     0,   // No address/value
-     1,   // immediate value:                 #$
-     1,   // direct zero addr + X:            d, X
-     1,   // direct zero addr + Y:            d, Y
-     1,   // direct zero addr:                d
-     2,   // absolute address + X:            a, X
-     2,   // absolute address + Y:            a, Y
-     2,   // absolute address:                a
-     1,   // indirect zero page address + X   (d, X)
-     1,   // indirect zero page address       (d)
-     1,   // indirect zero page ddress[Y]     (d), Y
-     1,   // indirect absolute address + x    (a, X)
-     1,   // indirect absolute address        (a)
-     1,   // relative value:                  r
-     0,   // register address:                A
 };
 
 const Cpu::OpCode_T Cpu::OperationCodeFunctionTable[] = 
@@ -484,7 +394,7 @@ void Cpu::setMemory(Memory *memory_controller)
 {
   pc = 0;
   memory = memory_controller;    // memory_callback
-  startAddr = memory_controller->getMemory();
+  startAddr = memory_controller->get_memory();
 }
 
 // TODO (Move controls out of CPU): Handle with new controls class, allow alternate controls
@@ -510,18 +420,18 @@ void Cpu::doInstruction()
   uint8_t operationCode = 0xFF & startAddr[pc];
 
   // get address mode ID from instruction operation code
-  uint8_t addressModeId = AddressModeLookupTable[operationCode];
+  uint8_t addressModeId = memory->AddressModeLookupTable[operationCode];
 
   // get required operation function ID from table
   uint8_t operationCodeId = (this->OperationCodeLookupTable[operationCode]);
 
   // get required address by using memory address function table with operation code
-  uint8_t *address = (this->*AddressModeFunctionTable[addressModeId])(startAddr + pc + 1);
+  uint8_t *address = (memory->*Memory::AddressModeFunctionTable[addressModeId])(startAddr + pc + 1);
 
   uint8_t requiredCycles = (this->TimingLookupTable[operationCode]);
 
   // increment pc by required bytes: 1 for opcode + 0..2 for address mode
-  pc += AddressModeSizeTable[addressModeId] + 1;
+  pc += Memory::AddressModeSizeTable[addressModeId] + 1;
   
   // randomize 0xFE
   generateRandomVar();

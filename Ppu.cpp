@@ -126,4 +126,10 @@ void Ppu::RenderAll()
   SDL_RenderPresent(pRenderer);
 }
 
-
+void Ppu::clear_screen()
+{
+  for (int i = 0; i < 1024; i++)
+  {
+    chrData[i] = 0;
+  }
+}

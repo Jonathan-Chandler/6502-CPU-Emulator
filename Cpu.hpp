@@ -52,14 +52,10 @@ class Cpu
     void handlePlayerInput(SDL_Event *event);
 
   private:
-    typedef uint8_t* (Memory::*AddressMode_T)(uint8_t *instructionAddr);
     typedef void (Cpu::*OpCode_T)(uint8_t *memoryAddr);
 
     static const uint8_t OperationCodeLookupTable[];
-    static const uint8_t AddressModeLookupTable[];
-    static const uint8_t AddressModeSizeTable[];
 
-    AddressMode_T AddressModeFunctionTable[];  // 
     static const OpCode_T OperationCodeFunctionTable[];     //
     static const uint8_t SizeLookupTable[];
     static const uint8_t TimingLookupTable[];

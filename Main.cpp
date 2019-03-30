@@ -34,18 +34,17 @@ int main()
     0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10, 0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60, 0xa2, 0x00, 0xea, 
     0xea, 0xca, 0xd0, 0xfb, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   };
-  uint8_t *mem;
-  mem = (uint8_t *) malloc(0x10000);
-  memcpy(&mem[0x600], snakeProgram, sizeof(snakeProgram));
 
 //  char file[] = "cpu_dummy_writes_oam.nes";
   Memory nes_memory;
+  nes_memory.set_memory(0x600, snakeProgram, sizeof(snakeProgram));
   Ppu nesPpu;
-  Cpu nesCpu;
-  nesCpu.setMemory(mem);
-  nesCpu.setPc(0x0600);
-  uint8_t *chrData = &mem[0x0200];
-  nesPpu.SetData(chrData);
+  Cpu nes_cpu;
+  nes_cpu.setMemory(&nes_memory);
+  nes_memory.set_cpu(&nes_cpu);
+  nes_cpu.setPc(0x0600);
+  // set chrdata
+  nesPpu.SetData(nes_memory.get_chr_rom_data());
   nesPpu.addPixels();
 
   auto currentTime = Time::now();
@@ -86,7 +85,7 @@ int main()
       if (event.type == SDL_KEYDOWN
           || event.type == SDL_KEYUP) 
       {
-        nesCpu.handlePlayerInput(&event);
+        nes_cpu.handlePlayerInput(&event);
       }
 
       if (event.type == SDL_QUIT) 
@@ -98,13 +97,11 @@ int main()
     // cpu catch up
     while (cpuAccumulator >= cpuRate)
     {
-      nesCpu.doInstruction();
+      nes_cpu.doInstruction();
       cpuAccumulator -= cpuRate;
     }
 
     currentTime = newTime;
     cpuAccumulator += cycleTime;
   }
-
-  free(mem);
 }

@@ -4,10 +4,6 @@
 #include <iostream>
 #include <vector>
 
-// TODO: emulate NES PPU
-// uint8_t streamA;
-// uint8_t streamB;
-
 typedef uint8_t data[16];
 typedef uint8_t colors[3];
 typedef uint8_t sprite[8][8];
@@ -47,9 +43,7 @@ typedef struct
 #define OAM_FLIP_HORIZONTALLY (0x1 << 6)    // Flip sprite horizontally
 #define OAM_FLIP_VERTICALLY   (0x1 << 7)    // Flip sprite vertically
   uint8_t x;
-} OAM_t;
-
-OAM_t oam_entries[64];
+} oam_t;
 
 typedef struct
 {
@@ -71,7 +65,6 @@ typedef struct
 #define BOTTOM_RIGHT_QUADRANT_MASK  (0x3 << 6)
 } name_table_t;
 
-name_table_t name_tables[4];
 #define TOP_LEFT_NAME_TABLE       1     // 0x2000
 #define TOP_RIGHT_NAME_TABLE      2     // 0x2400
 #define BOTTOM_LEFT_NAME_TABLE    3     // 0x2800
@@ -140,6 +133,7 @@ class Ppu
     void addPixels();
     void updatePixels();
     void deletePixels();
+    void clear_screen();
       
   private:
     static const colors rgb[];
@@ -153,5 +147,8 @@ class Ppu
     // SDL window elements
     SDL_Window *pWindow;
     SDL_Renderer *pRenderer;
+    name_table_t name_tables[4];
+    oam_t oam_entries[64];
+
 };
 #endif

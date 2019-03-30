@@ -43,6 +43,9 @@
 
 #define OAMDMA                          0x4014      // OAM DMA high address
 
+#define JOYPAD1                         0x4016      // 
+#define JOYPAD2                         0x4017      // 
+
 class Memory
 {
   public:
@@ -58,8 +61,11 @@ class Memory
     void printProm();
 
     uint8_t getPrgSize();
-    uint8_t *getChrRomData();
-    uint8_t *getMemory();
+    uint8_t *get_chr_rom_data();
+    void set_cpu(class Cpu *cpu);
+    uint8_t *get_memory();
+    uint8_t *get_memory(uint16_t addr);
+    void set_memory(uint16_t offset, uint8_t *source, uint16_t size);
 
     // CPU Memory
     // ======
@@ -120,6 +126,42 @@ class Memory
     uint8_t *AddressRegisterA(uint8_t *instructionAddr);              // Return the address of CPU register A
 
     bool testPageBoundary(uint8_t addressOffset);
+
+    static const uint8_t AddressModeSizeTable[];
+
+    enum AddressModesEnum
+    {
+                                  //    description                   symbol
+      None,                       // No address/value
+      Immediate,                  // immediate value:                 #$
+      DirectZeroX,                // direct zero addr + X:            d, X
+      DirectZeroY,                // direct zero addr + Y:            d, Y
+      DirectZeroZ,                // direct zero addr:                d
+      DirectAbsoluteX,            // absolute address + X:            a, X
+      DirectAbsoluteY,            // absolute address + Y:            a, Y
+      DirectAbsoluteZ,            // absolute address:                a
+      IndirectZeroX,              // indirect zero page address + X   (d, X)
+      IndirectZeroZ,              // indirect zero page address       (d)
+      IndirectZeroIndexY,         // indirect zero page ddress[Y]     (d), Y
+      IndirectAbsoluteX,          // indirect absolute address + x    (a, X)
+      IndirectAbsoluteZ,          // indirect absolute address        (a)
+      RelativeAddress,            // relative value:                  r
+      RegisterA,                  // address of A register
+      ImplementedCount,           // No address used
+      al,                         // No address used
+      alX,                        // No address used
+      b,                          // No address used
+      rl,                         // No address used
+      pdSpY,                      // No address used
+      dS,                         // No address used
+      sd,                         // No address used
+      bdb,                        // No address used
+      bdby,                       // No address used
+      AddressModeCount,           // No address used
+    };                            
+    typedef uint8_t* (Memory::*AddressMode_T)(uint8_t *instructionAddr);
+    static const AddressMode_T AddressModeFunctionTable[];
+    static const uint8_t AddressModeLookupTable[];
 
   private:
     class Cpu *cpu_callback;
