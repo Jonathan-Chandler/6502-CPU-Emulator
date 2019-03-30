@@ -39,6 +39,7 @@ int main()
   memcpy(&mem[0x600], snakeProgram, sizeof(snakeProgram));
 
 //  char file[] = "cpu_dummy_writes_oam.nes";
+  Memory nes_memory;
   Ppu nesPpu;
   Cpu nesCpu;
   nesCpu.setMemory(mem);

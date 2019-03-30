@@ -1,6 +1,7 @@
 #ifndef CPU_HPP
 #define CPU_HPP
 #include <iostream>
+#include "Memory.hpp"
 #include "SDL2/SDL.h" 
 
 class Cpu
@@ -39,9 +40,10 @@ class Cpu
     uint16_t getProgramCounter();
     uint8_t getStackPointer();
     uint8_t getA();
+    uint8_t *getAddressA();
     uint8_t getX();
     uint8_t getY();
-    void setMemory(uint8_t *memoryAddr);
+    void setMemory(Memory *memory_controller);
     void setPc(uint16_t counter);
     void reset();
     void printStatus();
@@ -50,15 +52,15 @@ class Cpu
     void handlePlayerInput(SDL_Event *event);
 
   private:
-    typedef uint8_t* (Cpu::*AddressMode_T)(uint8_t *instructionAddr);
+    typedef uint8_t* (Memory::*AddressMode_T)(uint8_t *instructionAddr);
     typedef void (Cpu::*OpCode_T)(uint8_t *memoryAddr);
 
     static const uint8_t OperationCodeLookupTable[];
     static const uint8_t AddressModeLookupTable[];
     static const uint8_t AddressModeSizeTable[];
 
-    static const AddressMode_T AddressModeFunctionTable[]; // 
-    static const OpCode_T OperationCodeFunctionTable[]; //
+    AddressMode_T AddressModeFunctionTable[];  // 
+    static const OpCode_T OperationCodeFunctionTable[];     //
     static const uint8_t SizeLookupTable[];
     static const uint8_t TimingLookupTable[];
 
@@ -78,6 +80,7 @@ class Cpu
     bool crossedPage;   // signal 255-byte page boundary was crossed
     uint8_t cycles;     // number of cycles to wait before executing next instruction
 
+    Memory  *memory;    // memory_callback
     uint8_t *startAddr; // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
     uint16_t pc;        // Program Counter: 16 bits, reference &memory[(0x0 -> 0xFFFF)]
                         // On reset, reference address given from &memory[(memory[0xFFFD] << 4) | (memory[0xFFFC])]; 
@@ -86,44 +89,6 @@ class Cpu
     uint8_t a;          // Accumulator register
     uint8_t x;          // X register
     uint8_t y;          // Y register
-
-    // Memory
-    // ======
-    // 0x100   => Zero Page (0x0 -> 0xFF)
-    // 0x200   => Stack     (0x100 -> 0x1FF)
-    // 0x800   => RAM       (0x200 -> )
-    // 0x2000  => Mirrors (0-0x7FF)
-    // 0x2008  => I/O Registers
-    // 0x4000  => Mirrors (0x2000-0x2007)
-    // 0x4020  => I/O Registers
-    // 0x6000  => Expansion ROM
-    // 0x8000  => SRAM
-    // 0xC000  => PRG-ROM (Lower Bank)
-    // 0x10000 => PRG-ROM (Upper Bank)
-    // 
-    // Memory
-    // ======
-    // $0000-$07FF  $0800   2KB internal RAM
-    // $0800-$0FFF  $0800   Mirrors of $0000-$07FF
-    // $1000-$17FF  $0800
-    // $1800-$1FFF  $0800
-    // $2000-$2007  $0008   NES PPU registers
-    // $2008-$3FFF  $1FF8   Mirrors of $2000-2007 (repeats every 8 bytes)
-    // $4000-$4017  $0018   NES APU and I/O registers
-    // $4018-$401F  $0008   APU and I/O functionality that is normally disabled. See CPU Test Mode.
-    // $4020-$FFFF  $BFE0   Cartridge space: PRG ROM, PRG RAM, and mapper registers (See Note)
-    //
-    // Memory
-    // ======
-    // $0000-$000F  16 bytes    Local variables and function arguments
-    // $0010-$00FF  240 bytes   Global variables accessed most often, including certain pointer tables
-    // $0100-$019F  160 bytes   Data to be copied to nametable during next vertical blank (see The frame and NMIs)
-    // $01A0-$01FF  96 bytes    Stack
-    // $0200-$02FF  256 bytes   Data to be copied to OAM during next vertical blank
-    // $0300-$03FF  256 bytes   Variables used by sound player, and possibly other variables
-    // $0400-$07FF  1024 bytes  Arrays and less-often-accessed global variables
-
-    uint8_t memory[0x10000]; // 0 -> 0xFFFF
 
     // utility functions
     void generateRandomVar();                             // generate random value at 0x00FE
@@ -231,27 +196,5 @@ class Cpu
     void iSED(uint8_t *addr);                           // SEt Decimal mode
     void iPLX(uint8_t *addr);                           // PulL X register
     void iXCE(uint8_t *addr);                           // eXchange Carry and Emulation flags
-
-    // Addressing modes
-    uint8_t *AddressNone(uint8_t *instructionAddr);                   // No addressing type is used for function
-    uint8_t *AddressImmediate(uint8_t *instructionAddr);              // Return the address of the value following the instruction
-    
-    uint8_t *AddressDirectZeroX(uint8_t *instructionAddr);            // Return the address: &memory[VAL + X]; If VAL + X overflows, wrapped to the zero page only (VAL is 1 byte)
-    uint8_t *AddressDirectZeroY(uint8_t *instructionAddr);            // Return the address: &memory[VAL + Y]; If VAL + Y overflows, wrapped to the zero page only (VAL is 1 byte)
-    uint8_t *AddressDirectZeroZ(uint8_t *instructionAddr);            // Return the address: &memory[VAL]; Overflow not possible (VAL is 1 byte)
-    
-    uint8_t *AddressDirectAbsX(uint8_t *instructionAddr);             // Return the address: &memory[VAL + X]; (VAL is 2 bytes)
-    uint8_t *AddressDirectAbsY(uint8_t *instructionAddr);             // Return the address: &memory[VAL + X]; (VAL is 2 bytes)
-    uint8_t *AddressDirectAbsZ(uint8_t *instructionAddr);             // Return the address: &memory[VAL]; (VAL is 2 bytes)
-    
-    uint8_t *AddressIndirectZeroX(uint8_t *instructionAddr);          // Return the address: &memory[*(&memory[VAL + X])]; If VAL + X overflows, wrapped to zero page (VAL is 1 byte)
-    uint8_t *AddressIndirectZeroZ(uint8_t *instructionAddr);          // Return the address: &memory[*(&memory[VAL + X])]; If VAL + X overflows, wrapped to zero page (VAL is 1 byte)
-
-    uint8_t *AddressIndirectZeroIndexY(uint8_t *instructionAddr);     // Return the address: &memory[*(&memory[VAL]) + Y]; (VAL is 1 byte)
-      
-    uint8_t *AddressIndirectAbsX(uint8_t *instructionAddr);           // Return the address: &memory[*(&memory[VAL + X]); (VAL is 2 bytes)
-    uint8_t *AddressIndirectAbsZ(uint8_t *instructionAddr);           // Return the address: &memory[*(&memory[VAL]); (VAL is 2 bytes)
-    uint8_t *AddressRelative(uint8_t *instructionAddr);               // Return the address: &memory[PC + signed(VAL)]; (VAL is 1 byte)
-    uint8_t *AddressRegisterA(uint8_t *instructionAddr);              // Return the address of CPU register A
 };
 #endif
